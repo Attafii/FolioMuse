@@ -11,3 +11,85 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ── Gallery Curation Models ──────────────────────────────────────────────
+
+model Attribution {
+  id           String        @id @default(cuid())
+  creatorName  String
+  sourceUrl    String        @unique
+  licenseType  String
+  consentDate  DateTime
+  createdAt    DateTime      @default(now())
+  galleryItems GalleryItem[]
+}
+
+model ConsentRecord {
+  id           String        @id @default(cuid())
+  tier         String
+  consentedBy  String
+  consentedAt  DateTime
+  terms        String
+  expiresAt    DateTime?
+  createdAt    DateTime      @default(now())
+  galleryItems GalleryItem[]
+}
+
+model GalleryItem {
+  id                  String            @id @default(cuid())
+  title               String
+  creatorRole         String
+  styleTags           String[]          @default([])
+  qualityLevel        String?
+  complianceStatus    String?
+  status              String            @default("PENDING_REVIEW")
+  attributionId       String
+  consentRecordId     String
+  reviewedAt          DateTime?
+  duplicateOfId       String?
+  structureFingerprint String?
+  contentHash         String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  attribution   Attribution    @relation(fields: [attributionId], references: [id])
+  consent       ConsentRecord  @relation(fields: [consentRecordId], references: [id])
+  auditEntries  AuditEntry[]
+  reviewDecisions ReviewDecision[]
+}
+
+model AuditEntry {
+  id        String       @id @default(cuid())
+  action    String
+  actorId   String
+  itemId    String?
+  decision  String?
+  rationale String?
+  timestamp DateTime     @default(now())
+
+  item      GalleryItem? @relation(fields: [itemId], references: [id])
+}
+
+model ReviewDecision {
+  id                String       @id @default(cuid())
+  itemId            String
+  decision          String
+  qualityLevel      String
+  complianceStatus  String
+  rejectionReason   String?
+  rationale         String
+  reviewerId        String
+  appealedAt        DateTime?
+  appealDecision    String?
+  createdAt         DateTime     @default(now())
+
+  item              GalleryItem  @relation(fields: [itemId], references: [id])
+}
+
+model PatternSignal {
+  id                  String    @id @default(cuid())
+  derivedFromItemIds  String[]
+  patternType         String
+  staleSince          DateTime?
+  createdAt           DateTime  @default(now())
+}
