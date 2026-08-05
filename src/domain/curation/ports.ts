@@ -1,0 +1,132 @@
+// ─── Port Interfaces ──────────────────────────────────────────────────────────────
+// Framework-agnostic domain interfaces. Implementations live in src/persistence/
+// and MUST NOT be imported by UI code (AGENTS.md §7).
+// NO Prisma imports — these are pure TypeScript interfaces.
+
+import type {
+  AuditEntry,
+  CurationTelemetryEvent,
+  GalleryItem,
+  GalleryItemSummary,
+  IngestInput,
+  ItemStatus,
+  NewAuditEntryInput,
+  NewGalleryItemInput,
+  OverrideDecisionInput,
+  ReviewDecisionInput,
+  UpdateGalleryItemInput,
+} from "./types";
+
+// ─── GalleryRepository ─────────────────────────────────────────────────────────────
+
+export interface GalleryRepository {
+  /** Creates a new gallery item in PENDING_REVIEW status. */
+  ingest(item: NewGalleryItemInput): Promise<GalleryItem>;
+
+  /** Finds a gallery item by id. Returns the full entity (internal use only). */
+  findById(id: string): Promise<GalleryItem | null>;
+
+  /**
+   * Finds a gallery item summary (metadata + attribution only).
+   * This is the safe read method — NO content blob per ADR-0001.
+   */
+  findSummaryById(id: string): Promise<GalleryItemSummary | null>;
+
+  /**
+   * Updates a gallery item's mutable fields.
+   * MUST throw AttributionModificationError if input attempts to modify
+   * attribution fields (R3 guard).
+   */
+  update(id: string, input: UpdateGalleryItemInput): Promise<GalleryItem>;
+
+  /** Updates only the status field. */
+  updateStatus(id: string, status: ItemStatus): Promise<GalleryItem>;
+
+  /** Flags an item as a duplicate of another. */
+  flagDuplicate(id: string, duplicateOfId: string): Promise<GalleryItem>;
+
+  /** Archives an item (sets status to ARCHIVED). */
+  archive(id: string): Promise<GalleryItem>;
+
+  /** Suspends an item (sets status to SUSPENDED). */
+  suspend(id: string): Promise<GalleryItem>;
+
+  // NO delete() — deletion is forbidden per curation-rubric.
+  // NO findFullContentById() — no exportable content blob per ADR-0001.
+}
+
+// ─── AuditRepository ──────────────────────────────────────────────────────────────
+
+export interface AuditRepository {
+  /** Creates a new audit entry (append-only). */
+  create(entry: NewAuditEntryInput): Promise<AuditEntry>;
+
+  /** Retrieves all audit entries for a given gallery item. */
+  findByItemId(itemId: string): Promise<AuditEntry[]>;
+
+  // NO update() — audit entries are immutable.
+  // NO delete() — audit entries are never deleted.
+}
+
+// ─── CurationService ──────────────────────────────────────────────────────────────
+
+export interface CurationService {
+  /**
+   * Validates consent + attribution, then ingests a new item.
+   * Throws if consent is missing or attribution is incomplete.
+   */
+  ingest(input: IngestInput): Promise<GalleryItemSummary>;
+
+  /**
+   * Applies a review decision. Enforces:
+   * - compliance=FAIL → reject regardless of quality
+   * - quality < L2 → reject
+   * Logs an audit entry.
+   */
+  review(decision: ReviewDecisionInput): Promise<GalleryItemSummary>;
+
+  /** Escalates an item to a senior reviewer. Logs an audit entry. */
+  escalate(itemId: string, reason: string): Promise<void>;
+
+  /**
+   * Senior reviewer binding override. Logs an OVERRIDE audit entry.
+   * The override decision is final.
+   */
+  overrideReview(
+    itemId: string,
+    overrideDecision: OverrideDecisionInput,
+  ): Promise<GalleryItemSummary>;
+
+  /**
+   * Archives an item (stale content / consent revocation).
+   * Logs an audit entry.
+   */
+  archive(itemId: string, reason: string): Promise<GalleryItemSummary>;
+
+  /**
+   * Emergency takedown. Sets status to SUSPENDED immediately.
+   * Logs an audit entry. Full review must follow within 48h.
+   */
+  suspend(itemId: string, reason: string): Promise<GalleryItemSummary>;
+
+  /** Flags an item as a duplicate of another. Logs an audit entry. */
+  flagDuplicate(
+    itemId: string,
+    duplicateOfId: string,
+  ): Promise<GalleryItemSummary>;
+
+  /**
+   * Sets status to PENDING_REREVIEW (creator-initiated update).
+   * Logs an audit entry.
+   */
+  triggerReReview(itemId: string): Promise<GalleryItemSummary>;
+
+  /**
+   * Revokes creator consent: archives item + marks pattern signals stale.
+   * Logs an audit entry. No deletion per R4.
+   */
+  revokeConsent(itemId: string): Promise<GalleryItemSummary>;
+
+  /** Emits a structured telemetry event. */
+  emitTelemetry(event: CurationTelemetryEvent): void;
+}
