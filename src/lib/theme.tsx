@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -15,9 +9,7 @@ export type ResolvedTheme = "light" | "dark";
 const STORAGE_KEY = "foliomuse-theme";
 
 interface ThemeContextValue {
-  theme: Theme;
   resolvedTheme: ResolvedTheme;
-  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
@@ -35,8 +27,8 @@ function applyTheme(resolved: ResolvedTheme) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "system";
     const stored = window.localStorage.getItem(STORAGE_KEY);
     return stored === "light" || stored === "dark" || stored === "system"
@@ -44,10 +36,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       : "system";
   });
 
-  const resolvedTheme = useMemo<ResolvedTheme>(
-    () => (theme === "system" ? getSystemTheme() : theme),
-    [theme],
-  );
+  const resolvedTheme = theme === "system" ? getSystemTheme() : theme;
 
   useEffect(() => {
     applyTheme(resolvedTheme);
@@ -62,21 +51,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mql.removeEventListener("change", onChange);
   }, [theme]);
 
-  const setTheme = useCallback((next: Theme) => setThemeState(next), []);
-
-  const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
+  const toggleTheme = () => {
+    setTheme((current) => {
       const resolved = current === "system" ? getSystemTheme() : current;
       return resolved === "dark" ? "light" : "dark";
     });
-  }, []);
+  };
 
-  const value = useMemo(
-    () => ({ theme, resolvedTheme, setTheme, toggleTheme }),
-    [theme, resolvedTheme, setTheme, toggleTheme],
+  return (
+    <ThemeContext.Provider value={{ resolvedTheme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
   );
-
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {
