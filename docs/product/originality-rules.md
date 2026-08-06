@@ -1,6 +1,7 @@
 # FolioMuse — Originality Rules (Anti-Cloning)
 
 Parent document: `docs/product/charter.md`
+Operational companion: `docs/product/provenance-and-originality-policy.md` (binding provenance requirements: consent, licence compatibility, attribution immutability, AI disclosure, removal/rebuild rules)
 
 These rules are **binding** on any feature touching the human gallery, section intelligence, or MCP agent experience. A feature or PR that violates any rule below must be rejected or amended before merge, and any exception requires a decision-log entry plus ADR.
 

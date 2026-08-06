@@ -22,6 +22,12 @@ model Attribution {
   consentDate  DateTime
   createdAt    DateTime      @default(now())
   galleryItems GalleryItem[]
+
+  // ADR-0003 D1/D5: canonical creator link (nullable rollout; explicit only)
+  creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  creatorId String?
+
+  @@index([creatorId])
 }
 
 model ConsentRecord {
@@ -31,6 +37,8 @@ model ConsentRecord {
   consentedAt  DateTime
   terms        String
   expiresAt    DateTime?
+  // ADR-0003 D3: revocation timestamp; original grant row is preserved
+  revokedAt    DateTime?
   createdAt    DateTime      @default(now())
   galleryItems GalleryItem[]
 }
@@ -49,13 +57,24 @@ model GalleryItem {
   duplicateOfId       String?
   structureFingerprint String?
   contentHash         String?
+  // ADR-0003 D1/D4: nullable provenance rollout relations
+  sourceRecordId      String?           @unique
+  aiProvenanceId      String?           @unique
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
   attribution   Attribution    @relation(fields: [attributionId], references: [id])
   consent       ConsentRecord  @relation(fields: [consentRecordId], references: [id])
+  sourceRecord  SourceRecord?  @relation(fields: [sourceRecordId], references: [id], onDelete: Restrict)
+  aiProvenance  AiProvenance?  @relation(fields: [aiProvenanceId], references: [id], onDelete: Restrict)
   auditEntries  AuditEntry[]
   reviewDecisions ReviewDecision[]
+  ownershipClaims OwnershipClaim[]
+  removalRecords   RemovalRecord[]
+  supersedingAssertions SupersedingAssertion[]
+
+  @@index([status])
+  @@index([creatorRole])
 }
 
 model AuditEntry {
@@ -91,5 +110,114 @@ model PatternSignal {
   derivedFromItemIds  String[]
   patternType         String
   staleSince          DateTime?
+  // ADR-0003 D8: eligibility floor + rebuild state
+  eligibleItemCount   Int?
+  distinctCreatorCount Int?
+  rebuildState        String?   // STALE_PENDING_REBUILD | REBUILDING | ACTIVE | REBUILD_FAILED | DROPPED_BELOW_FLOOR
   createdAt           DateTime  @default(now())
+
+  @@index([rebuildState, staleSince])
+}
+
+// ── Provenance Models (ADR-0003) ─────────────────────────────────────────
+
+model Creator {
+  id                 String   @id @default(cuid())
+  name               String
+  url                String?
+  verificationStatus String   @default("UNVERIFIED")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  attributions    Attribution[]
+  sourceRecords   SourceRecord[]
+  ownershipClaims OwnershipClaim[]
+}
+
+model SourceRecord {
+  id           String   @id @default(cuid())
+  sourceUrl    String
+  canonicalUrl String   @unique
+  captureMode  String
+  capturedAt   DateTime
+  evidenceHash String?
+  createdAt    DateTime @default(now())
+
+  creator      Creator?      @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  creatorId    String?
+  galleryItem  GalleryItem?
+
+  @@index([creatorId])
+  @@index([captureMode])
+}
+
+model AiProvenance {
+  id               String   @id @default(cuid())
+  provider         String
+  modelName        String
+  generatedAt      DateTime
+  disclosureStatus String   // HUMAN | AI_ASSISTED | AI_GENERATED | UNKNOWN
+  promptHash       String?
+  outputHash       String?
+  createdAt        DateTime @default(now())
+
+  galleryItem  GalleryItem?
+
+  @@index([disclosureStatus])
+}
+
+model OwnershipClaim {
+  id              String    @id @default(cuid())
+  itemId          String
+  claimantName    String
+  claimantContact String
+  status          String    @default("PENDING") // PENDING | UNDER_REVIEW | ACCEPTED | REJECTED | WITHDRAWN
+  submittedAt     DateTime  @default(now())
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolution      String?
+  createdAt       DateTime  @default(now())
+
+  item      GalleryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  creator   Creator?    @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  creatorId String?
+
+  @@index([status])
+  @@index([itemId])
+}
+
+model RemovalRecord {
+  id          String   @id @default(cuid())
+  itemId      String
+  status      String   @default("REQUESTED") // REQUESTED | EFFECTIVE | COMPLETED
+  requestedBy String
+  reason      String
+  requestedAt DateTime @default(now())
+  effectiveAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  item   GalleryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([itemId, status])
+  @@index([status])
+}
+
+// ADR-0003 D5: attribution corrections are recorded as superseding assertions;
+// the historical attribution/assertion rows are never mutated (R3 immutability).
+model SupersedingAssertion {
+  id                   String   @id @default(cuid())
+  targetItemId         String
+  replacesAssertionId  String
+  correctedCreatorId   String?
+  correctedLicenseType String? // LicenceId string (evolving vocabulary, no DB enum)
+  rationale            String
+  recordedBy           String
+  recordedAt           DateTime
+  createdAt            DateTime @default(now())
+
+  targetItem GalleryItem @relation(fields: [targetItemId], references: [id], onDelete: Restrict)
+
+  @@index([targetItemId])
+  @@index([recordedAt])
 }

@@ -12,7 +12,7 @@ Audience: Human internal reviewers only. No automated agents execute this docume
 
 Before reviewing any item, you must have read and understood these documents:
 
-- **`docs/product/curation-rubric.md`**: the binding editorial standard. Know the L0-L4 quality definitions (section 1), the mandatory compliance checks (section 2), the acceptance criteria (section 3), the 8 rejection reasons (section 4), and all policies (sections 7-12).
+- **`docs/product/curation-rubric.md`**: the binding editorial standard. Know the L0-L4 quality definitions (section 1), the mandatory compliance checks (section 2), the acceptance criteria (section 3), the 8 rejection reasons (section 4), and all policies (sections 7-14).
 - **`docs/product/originality-rules.md`** R1-R8: the anti-cloning rules. Pay special attention to:
   - R1 (no verbatim structural cloning)
   - R3 (attribution must travel with content)
@@ -248,9 +248,10 @@ Suspension is warranted when:
 
 Within **48 hours** of suspension, a senior reviewer must conduct a full review. The senior reviewer may:
 
-- **Confirm the suspension**: if the issue is confirmed, change status to `REJECTED`. Record the rejection reason and rationale.
-- **Lift the suspension**: if the issue was a false alarm or has been resolved, restore the item to `ACCEPTED` (its previous status). Record the restoration rationale.
-- **Escalate further**: if the issue requires charter amendment or a new ADR, escalate to the product owner.
+- **Confirm the takedown: change status to `ARCHIVED`** — if the issue is confirmed and the item was in active circulation, removal from circulation is `ARCHIVED` (durable), never `REJECTED`. `REJECTED` is reserved for editorial rejection of items never accepted into circulation (section 6). Record the reason and rationale. This also triggers derivative invalidation and rebuild (section 13).
+- **Reject a never-accepted item** — if the item was still `PENDING_REVIEW` or `PENDING_REREVIEW` when suspended and the issue is confirmed, set status to `REJECTED` with the appropriate reason code.
+- **Lift the suspension** — if the issue was a false alarm or has been resolved, restore the item to `ACCEPTED` (its previous status). Record the restoration rationale.
+- **Escalate further** — if the issue requires charter amendment or a new ADR, escalate to the product owner.
 
 The 48-hour clock starts from the `SUSPEND` audit entry timestamp. If the senior reviewer cannot complete the review within 48 hours, they must document the delay and provide an estimated resolution timeline.
 
@@ -309,7 +310,7 @@ For each stale item identified:
 1. Set the item's status to `ARCHIVED`.
 2. Record a `staleSince` timestamp.
 3. Create an `AuditEntry` with `action = ARCHIVE`. The rationale must note that the trigger was the 18-month staleness threshold.
-4. Mark any `PatternSignal` records derived from this item as stale via their `staleSince` field. Pattern signals remain in the system but are excluded from future synthesis until re-derived from non-stale sources.
+4. Invalidate derived signals per section 13.4: any `PatternSignal` derived from this item gets `staleSince` set and `rebuildState = STALE_PENDING_REBUILD`; a rebuild decision is queued idempotently. Pattern signals remain in the system but are excluded from future synthesis until rebuilt from non-stale sources or dropped below floor.
 
 ### 11.4 Important rules
 
@@ -328,9 +329,9 @@ A creator or rightsholder may revoke consent for their portfolio content at any 
 When consent is revoked:
 
 1. **Archive the item immediately.** Set status to `ARCHIVED`. The revocation is the archival trigger.
-2. **Mark pattern signals stale.** Any `PatternSignal` derived from this item gets `staleSince` set to the revocation timestamp. Stale signals are excluded from future synthesis.
+2. **Invalidate derived signals.** Any `PatternSignal` derived from this item gets `staleSince` set to the revocation timestamp and `rebuildState` set to `STALE_PENDING_REBUILD`; a rebuild decision is queued idempotently (section 13.4). Stale signals are excluded from future synthesis until rebuilt or dropped below floor.
 3. **Preserve the consent record.** Do not delete the `ConsentRecord`. Append a revocation timestamp (`revokedAt`). The record remains for audit traceability.
-4. **Create an audit entry.** `action = CONSENT_REVOKE`, with the revocation rationale and the consent record reference.
+4. **Create an audit entry.** `action = CONSENT_REVOKE`, with the revocation rationale and the consent record reference. The provenance telemetry event `CONSENT_REVOKED` is emitted.
 5. **No auto-renewal.** Consent, once revoked, does not automatically come back. A new, explicit `ConsentRecord` must be created if the creator later decides to re-consent. The original consent record remains as a historical artifact.
 
 ### 12.2 Expired consent
@@ -349,11 +350,92 @@ If a third party (platform, organisation, legal representative) requests removal
 
 ---
 
-## 13. Reviewer Calibration
+## 13. Ownership Claims, Removals, and Derivative Rebuild
+
+This section operationalises the provenance policy (`docs/product/provenance-and-originality-policy.md` §§7–9) and ADR-0003 Decisions 5–8 for reviewers. Every workflow defines: **actor**, **precondition**, **state transition**, **audit action**, **SLA**, and **failure/escalation path**.
+
+### 13.1 Status vocabulary (binding)
+
+| Status | Meaning | Set when |
+|---|---|---|
+| `SUSPENDED` | Hold during review — emergency takedown or credible ownership dispute. Not terminal. | Emergency trigger (section 9) or credible claim (13.3) |
+| `ARCHIVED` | Removed from active circulation — durable takedown. Terminal for circulation. | Consent revocation, accepted removal, confirmed takedown, 18-month stale threshold, accepted claim with removal disposition |
+| `REJECTED` | Editorial rejection — the item was never accepted into circulation. Terminal for ingestion. | Compliance/quality failure at review time (section 6) |
+
+A confirmed takedown **must** end in `ARCHIVED`, never `REJECTED` (section 9.3).
+
+### 13.2 Ownership claim intake
+
+- **Actor**: claimant (creator or authorised representative) filing the claim; reviewer triaging intake.
+- **Precondition**: a `GalleryItem` exists with attribution; the claimant asserts ownership or authorisation over it.
+- **State transition**: an `OwnershipClaim` is created with `status = PENDING`. The item's status is unchanged at intake unless the claim is credible and urgent (13.3).
+- **Audit action**: `CLAIM_FILED` audit entry (provenance telemetry: `CLAIM_CREATED`).
+- **SLA**: claim triage within 1 business day.
+- **Failure/escalation path**: claims with no owner-identifying evidence are returned to the claimant; repeated unsubstantiated claims against the same item are escalated to a senior reviewer (potential abuse, section 8).
+
+### 13.3 Claim review and emergency suspension
+
+- **Actor**: reviewer (triage), senior reviewer (resolution).
+- **Precondition**: claim is `PENDING`; evidence gathered.
+- **State transitions** (ADR-0003 Decision 6):
+  ```
+  PENDING → UNDER_REVIEW → ACCEPTED | REJECTED
+  PENDING → SUSPENDED        (credible claim: immediate emergency hold)
+  UNDER_REVIEW → ACCEPTED | REJECTED
+  ACCEPTED → SUSPENDED | ARCHIVED (per disposition)
+  PENDING | UNDER_REVIEW → WITHDRAWN (claimant withdraws)
+  ```
+- **Credible-claim suspension**: if the claim is credible (specific, evidenced, traceable to the item's creator or rightsholder), the reviewer MAY set the item to `SUSPENDED` immediately; full review completes within 48 hours (section 9).
+- **Accepted claim disposition**: on acceptance, the item is removed from active circulation → `ARCHIVED` (durable). A `RemovalRecord` is created.
+- **Rejected claim**: on rejection, the item returns to its pre-claim status. The claim record remains `REJECTED` with rationale. Claims never auto-transfer ownership (policy §8.1).
+- **Audit actions**: `CLAIM_RESOLVED` (provenance telemetry: `CLAIM_RESOLVED`), plus `SUSPEND` / `ARCHIVE` as applicable.
+- **SLA**: resolution within 5 business days of `UNDER_REVIEW`; 48 hours if the item is suspended.
+- **Failure/escalation path**: ambiguity → senior reviewer; legal complexity → product owner; the claim remains `UNDER_REVIEW` until resolved.
+
+### 13.4 Derivative invalidation and rebuild
+
+- **Actor**: domain logic (automated); reviewer observes the outcome.
+- **Precondition**: a source item is removed (consent revocation, accepted removal, confirmed takedown, or suspension).
+- **State transitions** (ADR-0003 Decision 8, policy §9):
+  1. Source/audit/consent rows remain **durable** (never hard-deleted).
+  2. All `PatternSignal`s referencing the item get `staleSince` set and `rebuildState = STALE_PENDING_REBUILD`.
+  3. A rebuild decision is queued asynchronously and idempotently (idempotency key = removal record id + pattern signal id).
+  4. Rebuild recomputes the signal from remaining eligible sources; `rebuildState` → `REBUILDING` → `ACTIVE` on success.
+  5. **R2 floor**: a signal requires **≥3 eligible items AND ≥2 distinct creators**. If the floor is not met, the signal enters `DROPPED_BELOW_FLOOR` and is excluded from active suggestions — not physically deleted.
+  6. Rebuild failures transition to `REBUILD_FAILED` with bounded retries; `REBUILD_FAILED` and `REBUILD_BELOW_FLOOR` are telemetry events. No model calls in this feature.
+- **Audit actions**: `PATTERN_INVALIDATED`, `REBUILD_QUEUED`, `REBUILD_SUCCEEDED`, `REBUILD_FAILED`, `FLOOR_FAILED` (provenance telemetry: `PATTERN_INVALIDATED`, `REBUILD_SUCCESS`, `REBUILD_FAILED`, `REBUILD_BELOW_FLOOR`).
+- **SLA**: stale marking synchronous with removal commit; rebuild queued within 1 minute; public exclusion immediately after committed removal state.
+- **Failure/escalation path**: rebuild failure retries with backoff; persistent failure is a telemetry event and an alert; the signal remains excluded until rebuilt.
+
+### 13.5 Removal record lifecycle
+
+- **Actor**: domain logic; reviewer initiates on accepted claims or takedowns.
+- **Precondition**: a removal decision exists (accepted claim, confirmed takedown, or consent revocation).
+- **State transitions** (ADR-0003 Decision 7): `REQUESTED → EFFECTIVE → COMPLETED`.
+- **Audit actions**: `REMOVAL_REQUESTED`, `REMOVAL_EFFECTIVE`, `REMOVAL_COMPLETED` (provenance telemetry: `REMOVAL_REQUESTED`, `REMOVAL_EFFECTIVE`).
+- **SLA**: `EFFECTIVE` (public exclusion) immediate on confirmation; `COMPLETED` after derivative invalidation and rebuild decisions are queued.
+- **Failure/escalation path**: removal is idempotent and retry-safe; no duplicate audit or rebuild records may be produced.
+
+### 13.6 Attribution correction by supersession
+
+- **Actor**: reviewer or system operator with authorisation.
+- **Precondition**: an attribution record is incomplete, incorrect, or disputed; the correction is legitimate.
+- **State transition**: a **superseding provenance assertion** is recorded — `replacesAssertionId` points to the original attribution, with `correctedCreatorId`, `correctedLicenseType`, `rationale`, `recordedBy`, `recordedAt`. The historical attribution record is **never mutated** (R3, ADR-0003 Decision 5).
+- **Audit action**: `ATTRIBUTION_SUPERSEDED` audit entry referencing both assertions.
+- **SLA**: immediate (recorded at the time the correction is authorised).
+- **Failure/escalation path**: any attempt to mutate the historical attribution record is a compliance failure and a telemetry event. Public projections resolve the latest accepted superseding assertion.
+
+### 13.7 Evidence privacy
+
+Claimant contact data, ownership proof, reviewer identity, and legal correspondence are **private** (policy §8.3). They must never appear in gallery summaries, telemetry payloads, or MCP outputs. Record evidence references and claim outcomes in audit entries — never raw evidence content.
+
+---
+
+## 14. Reviewer Calibration
 
 To maintain consistency across the reviewer team, a calibration audit runs quarterly. This is a manual process led by a senior reviewer, not an automated system.
 
-### 13.1 What is checked
+### 14.1 What is checked
 
 For each active reviewer, the senior reviewer examines:
 
@@ -361,11 +443,11 @@ For each active reviewer, the senior reviewer examines:
 - **Average quality score**: the mean quality level the reviewer assigns. If one reviewer consistently scores items a full level above or below the team average for the same cohort, the rubric may not be applied consistently.
 - **Escalation rate**: how often the reviewer's decisions trigger escalations. A high escalation rate suggests the reviewer's assessments frequently diverge from peers.
 
-### 13.2 Outlier threshold
+### 14.2 Outlier threshold
 
 A reviewer is flagged for calibration review when any of their metrics falls **more than 2 standard deviations (>2σ)** from the team mean. This is a statistical flag, not a disciplinary one. The purpose is to identify reviewers who may need a rubric refresher.
 
-### 13.3 Calibration review
+### 14.3 Calibration review
 
 For flagged reviewers:
 
@@ -379,7 +461,7 @@ Calibration reviews are not overrides: they do not retroactively change past dec
 
 ---
 
-## 14. What Is NOT in This Runbook
+## 15. What Is NOT in This Runbook
 
 This runbook covers the human review workflow for v1. The following are explicitly excluded:
 
@@ -399,6 +481,8 @@ This runbook covers the human review workflow for v1. The following are explicit
 
 - **`docs/product/curation-rubric.md`** (Task 3): parent standard. Defines quality levels, compliance checks, rejection reasons, duplicate handling, stale policy, consent revocation, audit history, re-review, and escalation. This runbook operationalises that standard.
 - **`docs/product/originality-rules.md`**: R1 (no verbatim cloning) enforced by duplicate handling and cross-creator clone check. R3 (attribution travels with content) enforced by compliance check 1 and attribution integrity check. R4 (consent-gated ingestion) enforced by compliance check 2 and consent revocation policy. R8 (similarity monitoring) is deferred: the schema reserves fields but no algorithm exists yet.
+- **`docs/product/provenance-and-originality-policy.md`**: the binding provenance policy operationalised by section 13 (§§7–9: claims, removal states, derivative rebuild, superseding assertions).
+- **`docs/adr/0003-provenance-and-originality-policy.md`**: Decisions 5–8 (superseding assertions, claim state machine, durable removal, derivative rebuild protocol) implemented by section 13.
 - **`docs/product/content-quality-principles.md`**: §6 (no fabricated credibility) enforced by compliance check 4. §8 (accessibility as quality dimension) enforced during quality scoring (L3/L4 differentiation).
 - **`docs/adr/0002-gallery-schema-design.md`**: defines the status lifecycle (`PENDING_REVIEW → ACCEPTED/REJECTED → PENDING_REREVIEW → ARCHIVED/SUSPENDED`), consent model (`ConsentRecord` with tiered rights), attribution model (non-nullable FK), append-only audit log, and reserved originality fields. All status transitions, audit actions, and data models referenced in this runbook are defined there.
 - **`docs/product/success-metrics.md`**: guardrail metrics (lines 21-28) that reviewer adherence supports: originality score (enforced by duplicate/cross-clone checks), attribution integrity (enforced by compliance checks 1 and 5), agent-authored-content disclosure rate (separate concern, not enforced by this runbook), accessibility compliance rate (reflected in quality scoring §4.4).

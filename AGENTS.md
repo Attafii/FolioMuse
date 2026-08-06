@@ -7,7 +7,7 @@ Read this before any change. It captures high-signal, repo-specific facts an age
 Canonical product definition lives in [`docs/product/charter.md`](./docs/product/charter.md). Every feature must be checked against:
 - `docs/product/charter.md` — mission, non-goals, originality rules
 - `docs/product/personas.md`, `docs/product/jobs-to-be-done.md`, `docs/product/success-metrics.md`
-- `docs/product/originality-rules.md` (R1–R5) and `docs/product/content-quality-principles.md`
+- `docs/product/originality-rules.md` (R1–R8) and `docs/product/content-quality-principles.md`
 - `docs/product/decision-log.md` — **append only, never rewrite history**
 - `docs/adr/` (currently ADR-0001: charter + anti-cloning boundary)
 
@@ -39,6 +39,8 @@ npm run start    # next start (production)
 npm run lint     # eslint (flat config: next core-web-vitals + TS)
 npm test         # vitest run (unit + integration tests)
 npm run test:watch  # vitest in watch mode
+npm run verify       # npx tsx scripts/verify-curation-domain.ts (DB-gated domain verification)
+npm run verify:policy # npx tsx scripts/verify-product-policy.ts (deterministic docs source-of-truth check)
 ```
 
 **There is NO `typecheck` or `prisma:*` npm script.** Run these manually:
@@ -50,7 +52,7 @@ npx prisma migrate dev --name <name>   # create a migration (migrations dir: pri
 npx prisma validate                    # validate schema
 ```
 
-Required command order for a change: **lint → typecheck → build**. There is no test runner configured yet — if you add one, also add the npm script and update this section.
+Required command order for a change: **lint → typecheck → build**, with tests (`npm test`, vitest) run for any domain/persistence change. The test runner is configured: unit + contract tests live in `src/*/__tests__/`; database integration tests skip when `DATABASE_URL` is absent. `npm run verify:policy` is the deterministic docs source-of-truth gate and must stay green.
 
 ## 5. Toolchain quirks (high-signal)
 
@@ -63,13 +65,16 @@ Required command order for a change: **lint → typecheck → build**. There is 
 - **Validation:** Zod 4 for all external inputs and all AI/provider outputs.
 - **`next.config.ts`** sets `turbopack.root` to the repo dir — keep that or dev server can break on Windows paths.
 
-## 6. Current repo state (scaffold stage)
+## 6. Current repo state (foundation + scaffold)
 
-`src/` is essentially create-next-app output. Boundaries in §7 are **target/aspirational**, not yet implemented:
+`src/` is create-next-app output plus the foundation layers built so far. Boundaries in §7 are implemented for the layers that exist; remaining layers are **aspirational**, not yet built:
 - `src/app/` — `layout.tsx`, `page.tsx`, `globals.css`, `favicon.ico` (default scaffold; metadata still reads "Create Next App")
 - `src/components/ui/` — shadcn primitives (only `button.tsx`)
-- `src/lib/utils.ts` — shadcn `cn()` helper
-- No `src/domain/`, `src/services/`, `src/server/`, `src/mcp/`, `src/hooks/`, or tests exist yet. When introducing them, follow §7 boundaries from the start rather than retrofitting later.
+- `src/lib/` — `utils.ts` (`cn()` helper), `prisma.ts` (Prisma 7 + Neon driver adapter)
+- `src/domain/curation/` — types, Zod schemas, `CurationServiceImpl`, ports; unit/contract tests in `src/domain/curation/__tests__/`
+- `src/domain/provenance/` — types, Zod schemas, ports (T4–T6); unit/contract tests in `src/domain/provenance/__tests__/`
+- `src/persistence/` — `gallery-repository-prisma.ts`, `audit-repository-prisma.ts`; integration tests in `src/persistence/__tests__/`
+- `src/services/`, `src/server/`, `src/mcp/`, `src/hooks/` do not exist yet. When introducing them, follow §7 boundaries from the start rather than retrofitting later.
 
 ## 7. Architectural boundaries (target state)
 
@@ -86,7 +91,7 @@ Before a change is "done":
 - [ ] `npm run lint` passes
 - [ ] `npx tsc --noEmit` passes (no npm script for this — run manually)
 - [ ] `npm run build` passes
-- [ ] Unit / integration / E2E tests pass **if they exist** (none configured yet)
+- [ ] Unit / integration / E2E tests pass **if they exist** (vitest configured; `npm test`)
 - [ ] Visual/contract checks pass when UI or API contracts are affected
 - [ ] Attribution/provenance preserved on any human-gallery content
 - [ ] Authorization and privacy boundaries preserved
