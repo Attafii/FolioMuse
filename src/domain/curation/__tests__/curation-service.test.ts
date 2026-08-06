@@ -14,6 +14,12 @@ import type {
 
 import type { GalleryRepository, AuditRepository } from "@/domain/curation/ports";
 
+import type {
+  ProvenanceRepository,
+  ProvenanceRebuildQueue,
+} from "@/domain/provenance/ports";
+import type { PatternSignalState } from "@/domain/provenance/types";
+
 import { CurationServiceImpl } from "@/domain/curation/curation-service";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -83,14 +89,42 @@ function itemToSummary(item: GalleryItem): GalleryItemSummary {
 interface MockRepos {
   galleryRepo: GalleryRepository;
   auditRepo: AuditRepository;
+  provenanceRepo: ProvenanceRepository;
+  rebuildQueue: ProvenanceRebuildQueue;
+  rebuildQueueControl: { failEnqueue: boolean };
   items: Map<string, GalleryItem>;
   auditEntries: AuditEntry[];
+  signals: Map<string, PatternSignalState>;
+  consentRevokedAt: Map<string, string>;
+  enqueuedRebuilds: { removalId: string; signalId: string; triggeredAt: string }[];
   consoleSpy: ReturnType<typeof vi.spyOn>;
+}
+
+/** Build a PatternSignalState for the in-memory provenance fake. */
+function makeSignal(id: string, itemIds: string[]): PatternSignalState {
+  return {
+    id,
+    derivedFromItemIds: itemIds,
+    patternType: "EDITORIAL_HERO",
+    staleSince: null,
+    eligibleItemCount: 3,
+    distinctCreatorCount: 2,
+    rebuildState: null,
+    createdAt: "2026-08-06T00:00:00.000Z",
+  };
 }
 
 function createMocks(): MockRepos {
   const items = new Map<string, GalleryItem>();
   const auditEntries: AuditEntry[] = [];
+  const signals = new Map<string, PatternSignalState>();
+  const consentRevokedAt = new Map<string, string>();
+  const enqueuedRebuilds: {
+    removalId: string;
+    signalId: string;
+    triggeredAt: string;
+  }[] = [];
+  const rebuildQueueControl = { failEnqueue: false };
   let nextAuditId = 0;
 
   const galleryRepo = {
@@ -180,9 +214,64 @@ function createMocks(): MockRepos {
     ),
   } as AuditRepository;
 
+  const provenanceRepo = {
+    revokeConsentForItem: vi.fn(async (itemId: string) => {
+      // Idempotent: never overwrite an existing revokedAt.
+      const existing = consentRevokedAt.get(itemId);
+      const revokedAt = existing ?? "2026-08-06T00:00:00.000Z";
+      consentRevokedAt.set(itemId, revokedAt);
+      // Mark referencing signals stale (earliest-wins).
+      for (const s of signals.values()) {
+        if (s.derivedFromItemIds.includes(itemId)) {
+          if (s.staleSince === null || Date.parse(s.staleSince) > Date.parse(revokedAt)) {
+            signals.set(s.id, {
+              ...s,
+              staleSince: revokedAt,
+              rebuildState: "STALE_PENDING_REBUILD",
+            });
+          }
+        }
+      }
+      return { revokedAt };
+    }),
+
+    findPatternSignalsReferencingItem: vi.fn(async (itemId: string) =>
+      [...signals.values()].filter((s) => s.derivedFromItemIds.includes(itemId)),
+    ),
+    // The curation service only touches two of the 21 repository methods; the
+    // fake implements exactly those (partial fake pattern for unit tests).
+  } as unknown as ProvenanceRepository;
+
+  const rebuildQueue = {
+    enqueueRebuild: vi.fn(
+      async (input: { removalId: string; signalId: string; triggeredAt: string }) => {
+        if (rebuildQueueControl.failEnqueue) {
+          throw new Error("rebuild queue unavailable");
+        }
+        // Idempotent by (removalId, signalId) key — duplicates are no-ops.
+        const exists = enqueuedRebuilds.some(
+          (e) => e.removalId === input.removalId && e.signalId === input.signalId,
+        );
+        if (!exists) enqueuedRebuilds.push(input);
+      },
+    ),
+  } as ProvenanceRebuildQueue;
+
   const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-  return { galleryRepo, auditRepo, items, auditEntries, consoleSpy };
+  return {
+    galleryRepo,
+    auditRepo,
+    provenanceRepo,
+    rebuildQueue,
+    rebuildQueueControl,
+    items,
+    auditEntries,
+    signals,
+    consentRevokedAt,
+    enqueuedRebuilds,
+    consoleSpy,
+  };
 }
 
 // ─── Test Suite ───────────────────────────────────────────────────────────────
@@ -193,7 +282,12 @@ describe("CurationServiceImpl", () => {
 
   beforeEach(() => {
     mocks = createMocks();
-    service = new CurationServiceImpl(mocks.galleryRepo, mocks.auditRepo);
+    service = new CurationServiceImpl(
+      mocks.galleryRepo,
+      mocks.auditRepo,
+      mocks.provenanceRepo,
+      mocks.rebuildQueue,
+    );
     // Clear accumulated console.spy calls from previous tests
     mocks.consoleSpy.mockClear();
   });
@@ -419,9 +513,9 @@ describe("CurationServiceImpl", () => {
     expect(archiveEntries[0].rationale).toBe("Stale content");
   });
 
-  // ── 10. revokeConsent() → CONSENT_REVOKE audit + repo.archive() called ────
+  // ── 10. revokeConsent() → atomic invalidation + archive + audit + enqueue ──
 
-  it("revokeConsent(): creates CONSENT_REVOKE audit and archives item", async () => {
+  it("revokeConsent(): records revokedAt, marks signals stale, archives item, enqueues rebuilds", async () => {
     await service.ingest({
       title: "Consent Revoked",
       creatorRole: "Designer",
@@ -430,16 +524,93 @@ describe("CurationServiceImpl", () => {
       consent: makeConsent(),
     });
     const item = mocks.items.values().next().value as GalleryItem;
+    // A derived pattern signal references the item.
+    mocks.signals.set("signal-1", makeSignal("signal-1", [item.id]));
 
     const summary = await service.revokeConsent(item.id);
 
     expect(summary.status).toBe("ARCHIVED");
     expect(mocks.galleryRepo.archive).toHaveBeenCalledWith(item.id);
 
+    // Provenance invalidation committed: revokedAt recorded on the grant and
+    // the referencing signal is stale.
+    const revokedAt = mocks.consentRevokedAt.get(item.id);
+    expect(revokedAt).toBeTruthy();
+    const signal = mocks.signals.get("signal-1")!;
+    expect(signal.staleSince).toBe(revokedAt);
+    expect(signal.rebuildState).toBe("STALE_PENDING_REBUILD");
+
+    // Audit history created.
     const revokeEntries = mocks.auditEntries.filter(
       (e) => e.action === "CONSENT_REVOKE",
     );
     expect(revokeEntries.length).toBe(1);
+
+    // Rebuild decision enqueued by idempotency key (removalId = itemId, since
+    // consent revocation carries no removal record).
+    expect(mocks.enqueuedRebuilds.length).toBe(1);
+    expect(mocks.enqueuedRebuilds[0].removalId).toBe(item.id);
+    expect(mocks.enqueuedRebuilds[0].signalId).toBe("signal-1");
+    expect(mocks.enqueuedRebuilds[0].triggeredAt).toBe(revokedAt);
+  });
+
+  it("revokeConsent(): retry is idempotent — revokedAt unchanged, single enqueue per signal", async () => {
+    await service.ingest({
+      title: "Consent Revoked Twice",
+      creatorRole: "Designer",
+      styleTags: [],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+    const item = mocks.items.values().next().value as GalleryItem;
+    mocks.signals.set("signal-2", makeSignal("signal-2", [item.id]));
+
+    await service.revokeConsent(item.id);
+    const firstRevokedAt = mocks.consentRevokedAt.get(item.id);
+
+    // Duplicate revocation (e.g. concurrent request retry).
+    await service.revokeConsent(item.id);
+
+    // revokedAt is never overwritten (policy §3.2).
+    expect(mocks.consentRevokedAt.get(item.id)).toBe(firstRevokedAt);
+    // Single rebuild enqueue per (removalId, signalId) key.
+    expect(mocks.enqueuedRebuilds.length).toBe(1);
+    expect(mocks.consentRevokedAt.size).toBe(1);
+  });
+
+  it("revokeConsent(): rebuild-port failure leaves stale state durable and retryable", async () => {
+    await service.ingest({
+      title: "Consent Revoked With Queue Failure",
+      creatorRole: "Designer",
+      styleTags: [],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+    const item = mocks.items.values().next().value as GalleryItem;
+    mocks.signals.set("signal-3", makeSignal("signal-3", [item.id]));
+
+    // The rebuild queue is temporarily unavailable.
+    mocks.rebuildQueueControl.failEnqueue = true;
+    await expect(service.revokeConsent(item.id)).rejects.toThrow(
+      /rebuild queue unavailable/,
+    );
+
+    // Stale state remains DURABLE despite the enqueue failure (policy §9.1:
+    // invalidation commits BEFORE enqueue; the enqueue is retryable).
+    const revokedAt = mocks.consentRevokedAt.get(item.id);
+    expect(revokedAt).toBeTruthy();
+    expect(mocks.signals.get("signal-3")!.staleSince).toBe(revokedAt);
+    expect(mocks.signals.get("signal-3")!.rebuildState).toBe("STALE_PENDING_REBUILD");
+    // The item was archived and audited before the enqueue step.
+    expect(mocks.items.get(item.id)!.status).toBe("ARCHIVED");
+    expect(mocks.auditEntries.filter((e) => e.action === "CONSENT_REVOKE").length).toBe(1);
+    expect(mocks.enqueuedRebuilds.length).toBe(0);
+
+    // Retry is possible: queue recovers, enqueue succeeds (idempotent key).
+    mocks.rebuildQueueControl.failEnqueue = false;
+    await service.revokeConsent(item.id);
+    expect(mocks.enqueuedRebuilds.length).toBe(1);
+    expect(mocks.enqueuedRebuilds[0].removalId).toBe(item.id);
   });
 
   // ── 11. flagDuplicate() → DUPLICATE_FLAG audit + repo.flagDuplicate() ─────

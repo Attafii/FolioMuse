@@ -16,7 +16,9 @@ import {
   GalleryRepositoryPrisma,
   AuditRepositoryPrisma,
 } from "@/persistence/gallery-repository-prisma";
+import { ProvenanceRepositoryPrisma } from "@/persistence/provenance-repository-prisma";
 import { CurationServiceImpl } from "@/domain/curation/curation-service";
+import type { ProvenanceRebuildQueue } from "@/domain/provenance/ports";
 
 import type {
   Attribution,
@@ -82,15 +84,15 @@ function assertRejects(
 }
 
 /**
- * Build a ReviewDecisionInput with itemId. The type doesn't declare itemId,
- * but the CurationServiceImpl validates it at runtime via zod. We use a cast
- * to satisfy the type system while preserving the runtime enrichment.
+ * Build a ReviewDecisionInput for the given item. itemId is part of the
+ * ReviewDecisionInput type contract; Omit keeps the remaining fields
+ * explicit while guaranteeing itemId is always supplied.
  */
 function makeReviewInput(
   itemId: string,
-  rest: Omit<ReviewDecisionInput, never>,
+  rest: Omit<ReviewDecisionInput, "itemId">,
 ): ReviewDecisionInput {
-  return { itemId, ...rest } as unknown as ReviewDecisionInput;
+  return { itemId, ...rest };
 }
 
 // ─── Test data factory ────────────────────────────────────────────────────────
@@ -131,6 +133,7 @@ function makeIngestInput(overrides?: Partial<IngestInput>): IngestInput {
 // ─── Cleanup tracking ─────────────────────────────────────────────────────────
 
 const testItemRecords: TestItemRecord[] = [];
+const createdSignalIds: string[] = [];
 
 async function cleanup(): Promise<void> {
   if (testItemRecords.length === 0) {
@@ -164,6 +167,12 @@ async function cleanup(): Promise<void> {
     await prisma.attribution.deleteMany({
       where: { id: { in: attributionIds } },
     });
+
+    if (createdSignalIds.length > 0) {
+      await prisma.patternSignal.deleteMany({
+        where: { id: { in: createdSignalIds } },
+      });
+    }
 
     console.log("Cleanup complete.");
   } catch (err: unknown) {
@@ -205,7 +214,17 @@ async function runScenarios(): Promise<void> {
   // ── Wire up repositories and service ─────────────────────────────────────────
   const repo = new GalleryRepositoryPrisma();
   const audit = new AuditRepositoryPrisma();
-  const svc = new CurationServiceImpl(repo, audit);
+  const provenance = new ProvenanceRepositoryPrisma();
+  // No production queue implementation exists yet (Section 02+) — the script
+  // uses an in-memory queue that logs the idempotency keys.
+  const rebuildQueue: ProvenanceRebuildQueue = {
+    enqueueRebuild: async (input) => {
+      console.log(
+        `  [QUEUE] rebuild enqueued: removal=${input.removalId} signal=${input.signalId} at=${input.triggeredAt}`,
+      );
+    },
+  };
+  const svc = new CurationServiceImpl(repo, audit, provenance, rebuildQueue);
 
   console.log(`Test prefix: ${TEST_PREFIX}\n`);
 
@@ -509,6 +528,19 @@ async function runScenarios(): Promise<void> {
   console.log("── S12: Revoke consent ──");
   try {
     const s12 = await ingestAndTrack(svc, makeIngestInput());
+    // A derived pattern signal referencing the item exists before revocation.
+    const signal = await prisma.patternSignal.create({
+      data: {
+        derivedFromItemIds: [s12.id],
+        patternType: "VERIFY_SIGNAL_EDITORIAL_HERO",
+        staleSince: null,
+        eligibleItemCount: 3,
+        distinctCreatorCount: 2,
+        rebuildState: null,
+      },
+    });
+    createdSignalIds.push(signal.id);
+
     const s12Summary = await svc.revokeConsent(s12.id);
     assert(
       s12Summary.status === "ARCHIVED",
@@ -521,8 +553,32 @@ async function runScenarios(): Promise<void> {
       revokeEntry !== undefined,
       "  → CONSENT_REVOKE audit entry created",
     );
-    console.log(
-      "[WARN] Pattern signal staleness not verified — repository has no markPatternSignalsStale() method. This is a known limitation (see issues.md).",
+
+    // T11 seam: the provenance repository recorded revokedAt on the ORIGINAL
+    // grant and marked the derived signal stale — no longer a known limitation.
+    const tracked = testItemRecords.find((r) => r.itemId === s12.id);
+    const dbConsent = tracked
+      ? await prisma.consentRecord.findUnique({
+          where: { id: tracked.consentRecordId },
+        })
+      : null;
+    assert(
+      dbConsent?.revokedAt != null,
+      "  → ConsentRecord.revokedAt recorded on the original grant",
+      `revokedAt is ${dbConsent?.revokedAt ?? "null"}`,
+    );
+    const dbSignal = await prisma.patternSignal.findUnique({
+      where: { id: signal.id },
+    });
+    assert(
+      dbSignal?.staleSince != null,
+      "  → Derived PatternSignal marked stale",
+      `staleSince is ${dbSignal?.staleSince ?? "null"}`,
+    );
+    assert(
+      dbSignal?.rebuildState === "STALE_PENDING_REBUILD",
+      "  → Derived PatternSignal rebuildState = STALE_PENDING_REBUILD",
+      `got ${dbSignal?.rebuildState ?? "null"}`,
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

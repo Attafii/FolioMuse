@@ -18,6 +18,7 @@ import {
   AuditRepositoryPrisma,
 } from "@/persistence/gallery-repository-prisma";
 import { AttributionModificationError } from "@/domain/curation/types";
+import { ProvenanceRepositoryPrisma } from "@/persistence/provenance-repository-prisma";
 import type {
   NewGalleryItemInput,
   NewAuditEntryInput,
@@ -35,12 +36,14 @@ describe.skipIf(!process.env.DATABASE_URL)(
     let createdItemIds: string[] = [];
     let createdAttributionIds: string[] = [];
     let createdConsentIds: string[] = [];
+    let createdSignalIds: string[] = [];
     let testRunSuffix: string;
 
     // ─── Repositories ──────────────────────────────────────────────────────
 
     const repo = new GalleryRepositoryPrisma();
     const auditRepo = new AuditRepositoryPrisma();
+    const provenanceRepo = new ProvenanceRepositoryPrisma();
 
     // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -117,10 +120,16 @@ describe.skipIf(!process.env.DATABASE_URL)(
           where: { id: { in: createdAttributionIds } },
         });
       }
+      if (createdSignalIds.length > 0) {
+        await prisma.patternSignal.deleteMany({
+          where: { id: { in: createdSignalIds } },
+        });
+      }
       // Reset tracking arrays for the next test.
       createdItemIds = [];
       createdAttributionIds = [];
       createdConsentIds = [];
+      createdSignalIds = [];
     });
 
     afterAll(async () => {
@@ -136,6 +145,9 @@ describe.skipIf(!process.env.DATABASE_URL)(
       });
       await prisma.attribution.deleteMany({
         where: { creatorName: { startsWith: "Test Creator -" } },
+      });
+      await prisma.patternSignal.deleteMany({
+        where: { patternType: { startsWith: "T11_SIGNAL" } },
       });
     });
 
@@ -505,6 +517,121 @@ describe.skipIf(!process.env.DATABASE_URL)(
       // @ts-expect-error GalleryRepository interface has no delete method — deletion is forbidden
       const hasNoDelete = repo.delete;
       expect(hasNoDelete).toBeUndefined();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SCENARIO 11 (T11 seam): consent revocation is atomic across the
+    //             provenance + gallery repositories. Records revokedAt on the
+    //             ORIGINAL grant, marks referencing PatternSignals stale, and
+    //             archives the item. Failure before the transaction commit
+    //             leaves the original active state untouched.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    it("revocation records revokedAt, marks referencing signals stale, and archives the item", async () => {
+      const input = makeIngestInput(19);
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      // A derived pattern signal references the item.
+      const signal = await prisma.patternSignal.create({
+        data: {
+          derivedFromItemIds: [ingested.id],
+          patternType: "T11_SIGNAL_EDITORIAL_HERO",
+          staleSince: null,
+          eligibleItemCount: 3,
+          distinctCreatorCount: 2,
+          rebuildState: null,
+        },
+      });
+      createdSignalIds.push(signal.id);
+
+      // The orchestration the curation service performs (T11 seam).
+      const { revokedAt } = await provenanceRepo.revokeConsentForItem(
+        ingested.id,
+        "test-integration-actor",
+      );
+      const archived = await repo.archive(ingested.id);
+
+      // revokedAt recorded on the ORIGINAL grant row.
+      const dbConsent = await prisma.consentRecord.findUnique({
+        where: { id: ingested.consentRecordId },
+      });
+      expect(dbConsent!.revokedAt).not.toBeNull();
+      expect(dbConsent!.revokedAt!.toISOString()).toBe(revokedAt);
+
+      // Signal marked stale with rebuild state pending.
+      const dbSignal = await prisma.patternSignal.findUnique({
+        where: { id: signal.id },
+      });
+      expect(dbSignal!.staleSince).not.toBeNull();
+      expect(dbSignal!.rebuildState).toBe("STALE_PENDING_REBUILD");
+
+      // Item archived (durable — no deletion).
+      expect(archived.status).toBe("ARCHIVED");
+    });
+
+    it("failure before transaction commit leaves the original active state untouched", async () => {
+      const input = makeIngestInput(20);
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      // A signal referencing the item exists before the failed revocation.
+      const signal = await prisma.patternSignal.create({
+        data: {
+          derivedFromItemIds: [ingested.id],
+          patternType: "T11_SIGNAL_EDITORIAL_HERO",
+          staleSince: null,
+          eligibleItemCount: 3,
+          distinctCreatorCount: 2,
+          rebuildState: null,
+        },
+      });
+      createdSignalIds.push(signal.id);
+
+      // revokeConsentForItem on a NON-EXISTENT item fails inside the
+      // transaction → the whole invalidation rolls back (no partial state).
+      await expect(
+        provenanceRepo.revokeConsentForItem(
+          "nonexistent-item-t11",
+          "system",
+        ),
+      ).rejects.toThrow(/not found/);
+
+      // Original grant still has no revokedAt.
+      const dbConsent = await prisma.consentRecord.findUnique({
+        where: { id: ingested.consentRecordId },
+      });
+      expect(dbConsent!.revokedAt).toBeNull();
+
+      // The referencing signal is untouched (not stale).
+      const dbSignal = await prisma.patternSignal.findUnique({
+        where: { id: signal.id },
+      });
+      expect(dbSignal!.staleSince).toBeNull();
+      expect(dbSignal!.rebuildState).toBeNull();
+    });
+
+    it("duplicate revocation is idempotent — revokedAt never overwritten", async () => {
+      const input = makeIngestInput(21);
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      const first = await provenanceRepo.revokeConsentForItem(
+        ingested.id,
+        "system",
+      );
+      const second = await provenanceRepo.revokeConsentForItem(
+        ingested.id,
+        "system",
+      );
+
+      expect(second.revokedAt).toBe(first.revokedAt);
+
+      // Consent row carries a single revokedAt.
+      const dbConsent = await prisma.consentRecord.findUnique({
+        where: { id: ingested.consentRecordId },
+      });
+      expect(dbConsent!.revokedAt!.toISOString()).toBe(first.revokedAt);
     });
   },
 );
