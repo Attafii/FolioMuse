@@ -72,6 +72,8 @@ model GalleryItem {
   ownershipClaims OwnershipClaim[]
   removalRecords   RemovalRecord[]
   supersedingAssertions SupersedingAssertion[]
+  behaviorEvents   BehaviorEvent[]
+  rankingScore     RankingScore?
 
   @@index([status])
   @@index([creatorRole])
@@ -116,7 +118,92 @@ model PatternSignal {
   rebuildState        String?   // STALE_PENDING_REBUILD | REBUILDING | ACTIVE | REBUILD_FAILED | DROPPED_BELOW_FLOOR
   createdAt           DateTime  @default(now())
 
+  behaviorEvents BehaviorEvent[]
+  signalScore    SignalScore?
+
   @@index([rebuildState, staleSince])
+}
+
+// ── Data Flywheel Models (ADR-0004) ──────────────────────────────────────
+
+model BehaviorEvent {
+  id              String    @id @default(cuid())
+  eventType       String    // IMPRESSION | OPEN | SAVE | COLLECTION_ADD | MCP_RETRIEVAL_USE | DISMISSAL | REFORMULATION | MODERATOR_ACCEPTANCE
+  // Privacy: subject is identified only by a SHA-256 hash of a stable
+  // anonymous id — never a raw identifier (ADR-0004 D1, policy §12).
+  subjectKey      String
+  itemId          String?
+  patternSignalId String?
+  experimentId    String?
+  variant         String?
+  occurredAt      DateTime
+  idempotencyKey  String    @unique
+  payload         Json      @default("{}")
+  createdAt       DateTime  @default(now())
+
+  item          GalleryItem?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  patternSignal PatternSignal?  @relation(fields: [patternSignalId], references: [id], onDelete: SetNull)
+  experiment    Experiment?     @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+
+  @@index([itemId])
+  @@index([patternSignalId])
+  @@index([experimentId])
+  @@index([eventType, occurredAt])
+}
+
+model Experiment {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  status          String   @default("DRAFT") // DRAFT | RUNNING | PAUSED | COMPLETED
+  variants        Json     // [{key, weight}] weights sum to 1
+  guardrailConfig Json     // {maxOriginalityDeviation, minDiversity, maxAttributionViolations}
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime @default(now())
+
+  assignments  ExperimentAssignment[]
+  behaviorEvents BehaviorEvent[]
+
+  @@index([status])
+}
+
+model ExperimentAssignment {
+  id           String   @id @default(cuid())
+  experimentId String
+  subjectKey   String
+  variant      String
+  assignedAt   DateTime @default(now())
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, subjectKey])
+  @@index([experimentId])
+}
+
+model RankingScore {
+  id              String    @id @default(cuid())
+  itemId          String    @unique
+  rawScore        Float
+  decayedScore    Float
+  qualityScore    Float
+  recencyScore    Float
+  finalRankScore  Float
+  lastComputedAt  DateTime
+  createdAt       DateTime  @default(now())
+
+  item GalleryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model SignalScore {
+  id                   String   @id @default(cuid())
+  patternSignalId      String   @unique
+  suggestionStrength   Float
+  explanationReasonCode String
+  lastComputedAt       DateTime
+  createdAt            DateTime @default(now())
+
+  patternSignal PatternSignal @relation(fields: [patternSignalId], references: [id], onDelete: Cascade)
 }
 
 // ── Provenance Models (ADR-0003) ─────────────────────────────────────────

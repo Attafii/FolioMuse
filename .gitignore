@@ -46,4 +46,7 @@ next-env.d.ts
 # vitest
 /coverage-vitest
 
+# orchestrator work products (never committed)
+/.sisyphus/
+
 /src/generated/prisma
