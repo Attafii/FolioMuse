@@ -40,6 +40,8 @@ npm run lint     # eslint (flat config: next core-web-vitals + TS)
 npm test         # vitest run (unit + integration tests)
 npm run test:watch  # vitest in watch mode
 npm run verify       # npx tsx scripts/verify-curation-domain.ts (DB-gated domain verification)
+npm run verify:provenance # npx tsx scripts/verify-provenance-domain.ts (DB-gated domain verification)
+npm run verify:flywheel   # npx tsx scripts/verify-flywheel-domain.ts (DB-gated domain verification)
 npm run verify:policy # npx tsx scripts/verify-product-policy.ts (deterministic docs source-of-truth check)
 ```
 
@@ -73,7 +75,8 @@ Required command order for a change: **lint → typecheck → build**, with test
 - `src/lib/` — `utils.ts` (`cn()` helper), `prisma.ts` (Prisma 7 + Neon driver adapter)
 - `src/domain/curation/` — types, Zod schemas, `CurationServiceImpl`, ports; unit/contract tests in `src/domain/curation/__tests__/`
 - `src/domain/provenance/` — types, Zod schemas, ports (T4–T6); unit/contract tests in `src/domain/provenance/__tests__/`
-- `src/persistence/` — `gallery-repository-prisma.ts`, `audit-repository-prisma.ts`; integration tests in `src/persistence/__tests__/`
+- `src/domain/flywheel/` — types, Zod schemas, ports, event ingestor, ranking engine, suggestion-strength adjuster, experiment service (ADR-0004); unit/contract tests in `src/domain/flywheel/__tests__/`
+- `src/persistence/` — `gallery-repository-prisma.ts`, `audit-repository-prisma.ts`, `provenance-repository-prisma.ts`, `flywheel-repository-prisma.ts`; integration tests in `src/persistence/__tests__/`
 - `src/services/`, `src/server/`, `src/mcp/`, `src/hooks/` do not exist yet. When introducing them, follow §7 boundaries from the start rather than retrofitting later.
 
 ## 7. Architectural boundaries (target state)

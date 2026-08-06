@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "verify": "npx tsx scripts/verify-curation-domain.ts",
     "verify:provenance": "npx tsx scripts/verify-provenance-domain.ts",
+    "verify:flywheel": "npx tsx scripts/verify-flywheel-domain.ts",
     "verify:policy": "npx tsx scripts/verify-product-policy.ts"
   },
   "dependencies": {
