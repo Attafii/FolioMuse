@@ -72,7 +72,17 @@ export interface GalleryItemSummary {
   consentTier: ConsentTier;
   reviewedAt: string | null;
   duplicateOfId: string | null;
+  // ADR-0003 T6 safe projection: optional provenance completeness summary.
+  // NEVER carries contentBlob/structureJSON/raw captures/claimant evidence.
+  provenance?: ProvenanceSummary;
 }
+
+// ─── Safe Projection Types (ADR-0003 T6) ─────────────────────────────────
+// Safe gallery/API/MCP projection fields. Type is inferred from the Zod
+// schema in src/domain/curation/schemas.ts (single source of truth —
+// no manual duplication per T4 rule).
+
+import type { ProvenanceSummary } from "@/domain/curation/schemas";
 
 export interface ReviewDecision {
   itemId: string;
@@ -162,6 +172,7 @@ export interface IngestInput {
 }
 
 export interface ReviewDecisionInput {
+  itemId: string;
   decision: "ACCEPT" | "REJECT";
   qualityLevel: QualityLevel;
   complianceStatus: ComplianceStatus;

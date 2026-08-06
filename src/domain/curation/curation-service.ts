@@ -32,6 +32,11 @@ import type {
   AuditRepository,
 } from "./ports";
 
+import type {
+  ProvenanceRebuildQueue,
+  ProvenanceRepository,
+} from "@/domain/provenance/ports";
+
 // ─── Local Schemas ──────────────────────────────────────────────────────────────
 // Composed schemas for input types that lack a dedicated export in schemas.ts.
 // These reuse existing schema atoms and match the interface types in types.ts.
@@ -45,11 +50,11 @@ const IngestInputSchema = z.object({
 });
 
 /**
- * ReviewDecisionInput with itemId — ReviewDecisionInput (types.ts) omits
- * itemId, but the review workflow requires it. This schema enforces
- * itemId at runtime through zod validation.
+ * ReviewDecisionInput carries itemId in its type contract (types.ts).
+ * This schema validates the complete input at runtime, including itemId
+ * presence (zod rejects empty/missing itemId before any write).
  */
-const ReviewDecisionInputWithItemIdSchema = z.object({
+const ReviewDecisionInputSchema = z.object({
   itemId: z.string().min(1, "itemId must not be empty"),
   decision: z.enum(["ACCEPT", "REJECT"]),
   qualityLevel: QualityLevelSchema,
@@ -90,6 +95,8 @@ export class CurationServiceImpl implements CurationService {
   constructor(
     private readonly galleryRepository: GalleryRepository,
     private readonly auditRepository: AuditRepository,
+    private readonly provenanceRepository: ProvenanceRepository,
+    private readonly rebuildQueue: ProvenanceRebuildQueue,
   ) {}
 
   // ── 1. ingest ─────────────────────────────────────────────────────────────────
@@ -176,7 +183,7 @@ export class CurationServiceImpl implements CurationService {
 
   async review(decision: ReviewDecisionInput): Promise<GalleryItemSummary> {
     // Validate input (schema enforces itemId presence at runtime)
-    const parsed = ReviewDecisionInputWithItemIdSchema.parse(decision);
+    const parsed = ReviewDecisionInputSchema.parse(decision);
     const { itemId, qualityLevel, complianceStatus, rationale, reviewerId } = parsed;
 
     let finalStatus: "ACCEPTED" | "REJECTED";
@@ -455,11 +462,21 @@ export class CurationServiceImpl implements CurationService {
   // ── 9. revokeConsent ─────────────────────────────────────────────────────────
 
   async revokeConsent(itemId: string): Promise<GalleryItemSummary> {
-    // Pattern-signal staleness (PatternSignal.staleSince) not set here:
-    // requires a future repository method (markPatternSignalsStale).
-    // Tracked in .sisyphus/notepads/editorial-curation-rubric/issues.md.
+    // 1. Atomic provenance invalidation (policy §3.2, ADR-0003 D3/D8): records
+    //    revokedAt on the ORIGINAL consent grant AND marks every derived
+    //    PatternSignal stale in ONE repository transaction. A failure before
+    //    this commit leaves the original active state untouched. The acting
+    //    reviewer is captured as the audit actor below — it is intentionally
+    //    NOT persisted on the ConsentRecord (policy §3.2).
+    const { revokedAt } = await this.provenanceRepository.revokeConsentForItem(
+      itemId,
+      "system",
+    );
+
+    // 2. Archive the item (durable — R4, no deletion).
     await this.galleryRepository.archive(itemId);
 
+    // 3. Audit history (append-only).
     await this.auditRepository.create({
       action: "CONSENT_REVOKE",
       actorId: "system",
@@ -468,6 +485,23 @@ export class CurationServiceImpl implements CurationService {
       rationale: "Creator consent revoked. Item archived per R4 (no deletion).",
     });
 
+    // 4. Enqueue rebuild/drop decisions for every invalidated signal. Consent
+    //    revocation carries no removal record, so itemId serves as the
+    //    idempotency trigger key — duplicate revocations enqueue once per
+    //    signal (policy §9.1). Runs AFTER the stale state commits.
+    const signals =
+      await this.provenanceRepository.findPatternSignalsReferencingItem(itemId);
+    for (const signal of signals) {
+      if (signal.staleSince) {
+        await this.rebuildQueue.enqueueRebuild({
+          removalId: itemId,
+          signalId: signal.id,
+          triggeredAt: revokedAt,
+        });
+      }
+    }
+
+    // 5. Telemetry — minimized, no private consent data (policy §12).
     this.emitTelemetry({
       action: "CONSENT_REVOKE",
       itemId,
