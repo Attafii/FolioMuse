@@ -3,7 +3,6 @@
 // no vitest test bodies here.
 
 import { createHash } from "node:crypto";
-import { vi } from "vitest";
 
 import type {
   ExperimentRegistry,
