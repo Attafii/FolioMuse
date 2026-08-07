@@ -7,6 +7,7 @@ import { EditorialCollections } from "@/components/editorial-collections";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
 import { SectionExplorer } from "@/components/section-explorer";
+import { SubmissionCriteria } from "@/components/submission-criteria";
 import { SectionHeader } from "@/components/section-header";
 
 export const metadata: Metadata = {
@@ -66,25 +67,7 @@ export default function HomePage() {
         <McpExample />
 
         {/* ── 7. Submission criteria (T14) ─────────────────────────────── */}
-        <section
-          aria-labelledby="submission-criteria-heading"
-          data-testid="submission-criteria"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="submission-criteria-heading"
-            title="What we accept"
-            description="The bar for getting into the gallery."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              Criteria are on their way.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Attribution preserved, quality reviewed, consent respected.
-            </p>
-          </div>
-        </section>
+        <SubmissionCriteria />
 
         {/* ── 8. Newsletter (T15) ──────────────────────────────────────── */}
         <section
