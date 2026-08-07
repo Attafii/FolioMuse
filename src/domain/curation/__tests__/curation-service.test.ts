@@ -192,6 +192,18 @@ function createMocks(): MockRepos {
       item.updatedAt = new Date().toISOString();
       return item;
     }),
+
+    // T2 stub: full behavior lands with T4 service tests.
+    listAccepted: vi.fn(async () => {
+      return [...items.values()]
+        .filter((i) => i.status === "ACCEPTED" && i.complianceStatus !== "FLAG")
+        .sort(
+          (a, b) =>
+            b.qualityLevel.localeCompare(a.qualityLevel) ||
+            (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""),
+        )
+        .map(itemToSummary);
+    }),
   } as GalleryRepository;
 
   const auditRepo = {
@@ -748,5 +760,112 @@ describe("CurationServiceImpl", () => {
     expect("getFullContent" in mocks.galleryRepo).toBe(false);
     expect("exportContentBlob" in mocks.galleryRepo).toBe(false);
     expect("findFullContentById" in mocks.galleryRepo).toBe(false);
+  });
+
+  // ── 16. listAccepted() — public gallery read path (plan T4) ──────────────
+
+  it("listAccepted(): delegates to repository and returns summaries", async () => {
+    // Seed the in-memory repo with two accepted, non-flagged items and one
+    // that must be excluded (PENDING_REVIEW).
+    const itemA = await service.ingest({
+      title: "Public A",
+      creatorRole: "Designer",
+      styleTags: ["minimal"],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+    const itemB = await service.ingest({
+      title: "Public B",
+      creatorRole: "Engineer",
+      styleTags: ["editorial"],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+
+    await service.review({
+      itemId: itemA.id,
+      decision: "ACCEPT",
+      qualityLevel: "L2",
+      complianceStatus: "PASS",
+      rejectionReason: null,
+      rationale: "Good work",
+      reviewerId: "reviewer-1",
+    });
+    await service.review({
+      itemId: itemB.id,
+      decision: "ACCEPT",
+      qualityLevel: "L3",
+      complianceStatus: "PASS",
+      rejectionReason: null,
+      rationale: "Excellent",
+      reviewerId: "reviewer-1",
+    });
+
+    const accepted = await service.listAccepted();
+
+    expect(accepted).toHaveLength(2);
+    // Ordered qualityLevel DESC → L3 before L2.
+    expect(accepted[0].id).toBe(itemB.id);
+    expect(accepted[1].id).toBe(itemA.id);
+
+    // Safe projection: summaries carry no content blob (ADR-0001).
+    for (const summary of accepted) {
+      expect(summary).not.toHaveProperty("contentBlob");
+      expect(summary).not.toHaveProperty("structureJSON");
+    }
+  });
+
+  it("listAccepted(): excludes flagged, suspended, and unreviewed items", async () => {
+    // FLAG-flagged item — accepted status but compliance FLAG → excluded.
+    const flagged = await service.ingest({
+      title: "Flagged",
+      creatorRole: "Designer",
+      styleTags: [],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+    await service.review({
+      itemId: flagged.id,
+      decision: "ACCEPT",
+      qualityLevel: "L3",
+      complianceStatus: "FLAG",
+      rejectionReason: null,
+      rationale: "Accepted but flagged for compliance follow-up",
+      reviewerId: "reviewer-1",
+    });
+
+    // SUSPENDED item — high quality but suspended → excluded.
+    const suspended = await service.ingest({
+      title: "Suspended",
+      creatorRole: "Engineer",
+      styleTags: [],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+    await service.review({
+      itemId: suspended.id,
+      decision: "ACCEPT",
+      qualityLevel: "L3",
+      complianceStatus: "PASS",
+      rejectionReason: null,
+      rationale: "Accepted then suspended",
+      reviewerId: "reviewer-1",
+    });
+    await service.suspend(suspended.id, "Compliance review pending");
+
+    // Unreviewed item → excluded.
+    await service.ingest({
+      title: "Unreviewed",
+      creatorRole: "Designer",
+      styleTags: [],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+    });
+
+    const accepted = await service.listAccepted();
+    const ids = accepted.map((s) => s.id);
+
+    expect(ids).not.toContain(flagged.id);
+    expect(ids).not.toContain(suspended.id);
   });
 });

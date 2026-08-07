@@ -531,4 +531,14 @@ export class CurationServiceImpl implements CurationService {
       // Silently discard the event if validation fails.
     }
   }
+
+  // ── 11. listAccepted ─────────────────────────────────────────────────────────
+  // Safe public read path for the gallery surface (plan T4 / ADR-0001).
+  // Delegates to the repository — returns metadata-only summaries, no content
+  // blob. Domain layer adds no extra filtering: the repository owns the
+  // ACCEPTED + non-FLAG invariant.
+
+  async listAccepted(): Promise<GalleryItemSummary[]> {
+    return this.galleryRepository.listAccepted();
+  }
 }

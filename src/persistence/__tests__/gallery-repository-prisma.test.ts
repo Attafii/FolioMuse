@@ -426,6 +426,90 @@ describe.skipIf(!process.env.DATABASE_URL)(
     });
 
     // ═══════════════════════════════════════════════════════════════════════
+    // SCENARIO 7b: listAccepted returns only ACCEPTED, non-FLAG items,
+    // ordered qualityLevel DESC then reviewedAt DESC (plan T3).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    it("listAccepted returns only ACCEPTED non-flagged items ordered by quality then recency", async () => {
+      // ── Fixture set ────────────────────────────────────────────────────
+      // L3 accepted (oldest review) — must be FIRST (highest quality).
+      const l3 = await repo.ingest(makeIngestInput(30));
+      trackIngestResult(l3);
+      await repo.update(l3.id, {
+        status: "ACCEPTED",
+        qualityLevel: "L3",
+        complianceStatus: "PASS",
+        reviewedAt: "2026-07-01T00:00:00.000Z",
+      });
+
+      // L2 accepted (newest review) — must be SECOND.
+      const l2 = await repo.ingest(makeIngestInput(31));
+      trackIngestResult(l2);
+      await repo.update(l2.id, {
+        status: "ACCEPTED",
+        qualityLevel: "L2",
+        complianceStatus: "PASS",
+        reviewedAt: "2026-07-10T00:00:00.000Z",
+      });
+
+      // L2 accepted (older review) — must be THIRD (same quality, older).
+      const l2old = await repo.ingest(makeIngestInput(32));
+      trackIngestResult(l2old);
+      await repo.update(l2old.id, {
+        status: "ACCEPTED",
+        qualityLevel: "L2",
+        complianceStatus: "PASS",
+        reviewedAt: "2026-07-05T00:00:00.000Z",
+      });
+
+      // ACCEPTED but FLAG-flagged — must be EXCLUDED.
+      const flagged = await repo.ingest(makeIngestInput(33));
+      trackIngestResult(flagged);
+      await repo.update(flagged.id, {
+        status: "ACCEPTED",
+        qualityLevel: "L3",
+        complianceStatus: "FLAG",
+        reviewedAt: "2026-07-02T00:00:00.000Z",
+      });
+
+      // Still PENDING_REVIEW — must be EXCLUDED.
+      const pending = await repo.ingest(makeIngestInput(34));
+      trackIngestResult(pending);
+
+      // SUSPENDED with high quality — must be EXCLUDED.
+      const suspendedAccepted = await repo.ingest(makeIngestInput(35));
+      trackIngestResult(suspendedAccepted);
+      await repo.update(suspendedAccepted.id, {
+        status: "SUSPENDED",
+        qualityLevel: "L3",
+        complianceStatus: "PASS",
+      });
+
+      // ── Assertions ─────────────────────────────────────────────────────
+      const accepted = await repo.listAccepted();
+
+      const ids = accepted.map((s) => s.id);
+      expect(ids).not.toContain(flagged.id);
+      expect(ids).not.toContain(pending.id);
+      expect(ids).not.toContain(suspendedAccepted.id);
+
+      // Ordering: L3 first, then L2 by recency (newest reviewedAt first).
+      expect(ids).toEqual([l3.id, l2.id, l2old.id]);
+
+      // Return type is summary — never carries a content blob (ADR-0001).
+      const first = accepted[0];
+      expect(first).toMatchObject({
+        id: l3.id,
+        title: expect.any(String),
+        creatorRole: expect.any(String),
+        status: "ACCEPTED",
+        qualityLevel: "L3",
+      });
+      expect(first).not.toHaveProperty("contentBlob");
+      expect(first).not.toHaveProperty("structureJSON");
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SCENARIO 8: AuditRepository.create + findByItemId.
     // ═══════════════════════════════════════════════════════════════════════
 

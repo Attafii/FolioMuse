@@ -298,6 +298,31 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
 
     return mapDbGalleryItem(dbItem);
   }
+
+  /**
+   * Lists accepted gallery item summaries for the public gallery surface.
+   * Filtering (per plan T3 / ADR-0001):
+   *   - status === "ACCEPTED"
+   *   - complianceStatus !== "FLAG" — flagged or unreviewed (NULL, which the
+   *     domain maps to "FLAG") items never surface publicly.
+   * Ordering: qualityLevel DESC (L3 first), then reviewedAt DESC (newest
+   * review first). Nulls sort last. Returns metadata only — no content blob.
+   */
+  async listAccepted(): Promise<GalleryItemSummary[]> {
+    const dbItems = await prisma.galleryItem.findMany({
+      where: {
+        status: "ACCEPTED",
+        complianceStatus: { not: "FLAG" },
+      },
+      orderBy: [
+        { qualityLevel: { sort: "desc", nulls: "last" } },
+        { reviewedAt: { sort: "desc", nulls: "last" } },
+      ],
+      include: GALLERY_ITEM_INCLUDE,
+    });
+
+    return dbItems.map(mapDbToSummary);
+  }
 }
 
 // ─── AuditRepositoryPrisma ─────────────────────────────────────────────────────

@@ -51,6 +51,13 @@ export interface GalleryRepository {
   /** Suspends an item (sets status to SUSPENDED). */
   suspend(id: string): Promise<GalleryItem>;
 
+  /**
+   * Lists accepted gallery item summaries (safe projection — NO content blob
+   * per ADR-0001). Returns only status === "ACCEPTED" items, ordered
+   * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
+   */
+  listAccepted(): Promise<GalleryItemSummary[]>;
+
   // NO delete() — deletion is forbidden per curation-rubric.
   // NO findFullContentById() — no exportable content blob per ADR-0001.
 }
@@ -129,4 +136,11 @@ export interface CurationService {
 
   /** Emits a structured telemetry event. */
   emitTelemetry(event: CurationTelemetryEvent): void;
+
+  /**
+   * Lists accepted gallery item summaries (safe projection — NO content blob
+   * per ADR-0001/ADR-0002). Returns only status === "ACCEPTED" items, ordered
+   * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
+   */
+  listAccepted(): Promise<GalleryItemSummary[]>;
 }
