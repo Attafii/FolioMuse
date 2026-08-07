@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { Masthead } from "@/components/masthead";
+import { SearchHero } from "@/components/search-hero";
 import { SectionHeader } from "@/components/section-header";
 
 export const metadata: Metadata = {
@@ -34,28 +36,14 @@ export default function HomePage() {
         Skip to content
       </a>
 
+      <Masthead />
+
       <main
         id="main-content"
         className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-24 pt-12 sm:px-6 lg:px-8"
       >
         {/* ── 1. Masthead / hero (T8: direct search hero) ───────────────── */}
-        <section
-          aria-labelledby="masthead-heading"
-          data-testid="masthead"
-          className="flex flex-col gap-6 py-12 sm:py-16"
-        >
-          <p className="font-mono text-sm text-muted-foreground">FolioMuse</p>
-          <h1
-            id="masthead-heading"
-            className="font-display max-w-3xl text-4xl font-semibold tracking-tighter sm:text-5xl lg:text-6xl"
-          >
-            A gallery of portfolios worth learning from.
-          </h1>
-          <p className="max-w-[65ch] text-lg leading-relaxed text-muted-foreground">
-            Real portfolios, sharpened by AI feedback, assembled with an
-            agent. Find your starting point here.
-          </p>
-        </section>
+        <SearchHero />
 
         {/* ── 2. New & notable (T9: GalleryCard grid) ──────────────────── */}
         <section
