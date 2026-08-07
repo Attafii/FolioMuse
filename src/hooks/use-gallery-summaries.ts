@@ -56,10 +56,21 @@ function getSnapshot() {
   return state;
 }
 
+// SSR/prerender snapshot MUST be a stable cached reference — React 19
+// requires getServerSnapshot to return a memoized value, otherwise it warns
+// "The result of getServerSnapshot should be cached to avoid an infinite loop"
+// and may re-render repeatedly.
+const SERVER_SNAPSHOT: GallerySummariesState = {
+  items: [],
+  count: 0,
+  loading: true,
+  error: null,
+};
+
 function getServerSnapshot(): GallerySummariesState {
   // SSR/prerender: no fetch, no hydration mismatch — clients always start
   // from the loading state and update after the shared fetch resolves.
-  return { items: [], count: 0, loading: true, error: null };
+  return SERVER_SNAPSHOT;
 }
 
 async function load() {

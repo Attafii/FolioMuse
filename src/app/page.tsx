@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 
 import { Masthead } from "@/components/masthead";
 import { NewNotable } from "@/components/new-notable";
+import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
+import { SectionExplorer } from "@/components/section-explorer";
 import { SectionHeader } from "@/components/section-header";
 
 export const metadata: Metadata = {
@@ -50,47 +52,10 @@ export default function HomePage() {
         <NewNotable />
 
         {/* ── 3. Role explorer (T10) ───────────────────────────────────── */}
-        <section
-          aria-labelledby="role-explorer-heading"
-          data-testid="role-explorer"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="role-explorer-heading"
-            eyebrow="By role"
-            title="Explore portfolios by role"
-            description="Product designers, developers, illustrators, and more."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              Roles appear once portfolios are accepted.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Each role links to the portfolios that fit it.
-            </p>
-          </div>
-        </section>
+        <RoleExplorer />
 
         {/* ── 4. Section explorer (T11) ────────────────────────────────── */}
-        <section
-          aria-labelledby="section-explorer-heading"
-          data-testid="section-explorer"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="section-explorer-heading"
-            title="Browse by portfolio section"
-            description="Jump straight to the part of a portfolio you want to study."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              Sections appear once portfolios are accepted.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Explore how others structure their work.
-            </p>
-          </div>
-        </section>
+        <SectionExplorer />
 
         {/* ── 5. Editorial collections (T12) ───────────────────────────── */}
         <section
