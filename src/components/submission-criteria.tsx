@@ -66,7 +66,7 @@ export function SubmissionCriteria() {
           Ingestion coming soon
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          There is no submission form yet — the gallery is being built from
+                  There is no submission form yet - the gallery is being built from
           editorial samples while the review pipeline is completed. When
           ingestion opens, this section will point to the real path.
         </p>

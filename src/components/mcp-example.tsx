@@ -54,7 +54,7 @@ export function McpExample() {
         id="mcp-example-heading"
         eyebrow="Concrete example"
         title="See the FolioMuse agent at work"
-        description="How the agent helps you build — without ever copying a portfolio."
+        description="How the agent helps you build - without ever copying a portfolio."
       />
 
       <div className="flex flex-col gap-6 rounded-2xl border border-border bg-muted/30 p-6 sm:p-8">
@@ -76,7 +76,7 @@ export function McpExample() {
             <p>
               Across the 3+ developer portfolios we reviewed, the strongest
               intros open with the problem being solved and one concrete
-              constraint — not the stack. Your draft already names the tech;
+              constraint - not the stack. Your draft already names the tech;
               try leading with the constraint instead.
             </p>
             <p className="mt-3">
@@ -84,12 +84,12 @@ export function McpExample() {
               opening line (your words, re-ordered):
             </p>
             <p className="mt-3 border-l-2 border-ring/60 pl-3 font-medium">
-              &ldquo;The map had to load in under a second — on hotel Wi-Fi,
+              &ldquo;The map had to load in under a second - on hotel Wi-Fi,
               with 40k points. That constraint drove every choice in this
               case study.&rdquo;
             </p>
             <p className="mt-3 text-muted-foreground">
-              I only reworked your text — I didn&rsquo;t pull copy from any
+              I only reworked your text - I didn&rsquo;t pull copy from any
               gallery portfolio.
             </p>
           </ChatBubble>
@@ -100,7 +100,7 @@ export function McpExample() {
           portfolio&rsquo;s full content. It generalizes patterns across at
           least three items (R2), keeps attribution with anything it references
           (R3), and only ever writes content you authored or synthesized
-          guidance — never gallery copy (R5). Suggestions are yours to accept
+          guidance - never gallery copy (R5). Suggestions are yours to accept
           or reject, and anything the agent writes is marked in your edit
           history (R6, R7).
         </p>

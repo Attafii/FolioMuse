@@ -14,7 +14,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Design System — FolioMuse",
+      title: "Design System - FolioMuse",
   robots: { index: false, follow: false },
 };
 

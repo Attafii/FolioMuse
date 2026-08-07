@@ -90,7 +90,7 @@ export function NewNotable() {
       {!loading && !error && cards.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-medium text-card-foreground">
-            No portfolios yet — be the first to submit.
+                  No portfolios yet - be the first to submit.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             The gallery fills after the first curation review.

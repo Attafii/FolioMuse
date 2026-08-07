@@ -13,7 +13,7 @@ import { SubmissionCriteria } from "@/components/submission-criteria";
 import { SectionHeader } from "@/components/section-header";
 
 export const metadata: Metadata = {
-  title: "FolioMuse — Portfolio inspiration, without the cloning",
+    title: "FolioMuse - Portfolio inspiration, without the cloning",
   description:
     "A gallery-first entry point: real portfolios, sharpened by AI feedback, assembled with an agent.",
 };
