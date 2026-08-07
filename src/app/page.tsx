@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Masthead } from "@/components/masthead";
+import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
 import { EditorialCollections } from "@/components/editorial-collections";
 import { RoleExplorer } from "@/components/role-explorer";
@@ -62,26 +63,7 @@ export default function HomePage() {
         <EditorialCollections />
 
         {/* ── 6. MCP example (T13) ─────────────────────────────────────── */}
-        <section
-          aria-labelledby="mcp-example-heading"
-          data-testid="mcp-example"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="mcp-example-heading"
-            title="See the FolioMuse agent at work"
-            description="A concrete example of building a portfolio with the agent."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              The example appears once gallery data is available.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Illustrative only - it shows the workflow, not a finished
-              portfolio.
-            </p>
-          </div>
-        </section>
+        <McpExample />
 
         {/* ── 7. Submission criteria (T14) ─────────────────────────────── */}
         <section
