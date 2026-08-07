@@ -22,6 +22,7 @@ export function SectionExplorer() {
       getValues={(item: GalleryItemSummary) => item.styleTags}
       chipTestId="tag-chip"
       countTestId="tag-chip-count"
+      telemetrySource="section_explorer"
     />
   );
 }

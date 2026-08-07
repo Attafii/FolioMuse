@@ -22,6 +22,7 @@ export function RoleExplorer() {
       getValues={(item: GalleryItemSummary) => [item.creatorRole]}
       chipTestId="role-chip"
       countTestId="role-chip-count"
+      telemetrySource="role_explorer"
     />
   );
 }

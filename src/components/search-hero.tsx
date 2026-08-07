@@ -6,6 +6,7 @@ import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { useTelemetry } from "@/hooks/use-telemetry";
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
 /**
@@ -19,6 +20,10 @@ import type { GalleryItemSummary } from "@/domain/curation/types";
  *   list, Enter opens the highlighted result, Escape closes the panel.
  * - Loading shows real skeleton cards; error shows a retry action.
  * - No autocomplete library, no debounce lib, no ranking (zero deps).
+ * - Telemetry (plan T17): on submit/Enter each surfaced result gets an
+ *   IMPRESSION (payload carries the query — a pattern signal); opening a
+ *   result (Enter on highlighted / click) fires OPEN. Privacy: hashed
+ *   subject key, no page-view events (ADR-0004 non-metrics).
  */
 
 function matchesQuery(item: GalleryItemSummary, query: string): boolean {
@@ -33,10 +38,12 @@ function ResultCard({
   item,
   active,
   onMouseEnter,
+  onOpen,
 }: {
   item: GalleryItemSummary;
   active: boolean;
   onMouseEnter: () => void;
+  onOpen: () => void;
 }) {
   return (
     <a
@@ -44,6 +51,7 @@ function ResultCard({
       target="_blank"
       rel="noopener noreferrer"
       onMouseEnter={onMouseEnter}
+      onClick={onOpen}
       className={`flex flex-col gap-2 rounded-md border p-4 transition-colors ${
         active
           ? "border-ring bg-accent"
@@ -86,6 +94,7 @@ function SkeletonCards() {
 
 export function SearchHero() {
   const { items, loading, error, refetch } = useGallerySummaries();
+  const { impression, open } = useTelemetry();
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -100,6 +109,23 @@ export function SearchHero() {
   const hasResults = results.length > 0;
   const showPanel =
     panelOpen && !loading && !error && (query.trim() !== "" || items.length > 0);
+
+  // Telemetry (plan T17): search_submit → IMPRESSION per surfaced result.
+  // Query string is a pattern signal (allowed per ADR-0004); per-interaction
+  // idempotency key so every submit records. Never blocks UI (fire-and-forget).
+  function reportSubmit() {
+    const q = query.trim();
+    if (!q) return;
+    for (const result of results) {
+      impression(result.id, { source: "search", query: q });
+    }
+  }
+
+  // OPEN on result open (keyboard Enter on highlighted result).
+  function reportOpen(item: GalleryItemSummary) {
+    const q = query.trim();
+    open(item.id, q ? { source: "search", query: q } : { source: "search" });
+  }
 
   function openPanel() {
     setPanelOpen(true);
@@ -139,8 +165,9 @@ export function SearchHero() {
       );
     } else if (e.key === "Enter" && activeIndex >= 0 && results[activeIndex]) {
       e.preventDefault();
-      const target = results[activeIndex].attribution.sourceUrl;
-      window.open(target, "_blank", "noopener,noreferrer");
+      const target = results[activeIndex];
+      reportOpen(target);
+      window.open(target.attribution.sourceUrl, "_blank", "noopener,noreferrer");
       closePanel();
     }
   }
@@ -173,7 +200,10 @@ export function SearchHero() {
       <div className="relative flex w-full max-w-2xl flex-col gap-2">
         <form
           role="search"
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            reportSubmit();
+          }}
           className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
         >
           <Search aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -263,6 +293,7 @@ export function SearchHero() {
                     item={item}
                     active={index === activeIndex}
                     onMouseEnter={() => handleResultMouseEnter(index)}
+                    onOpen={() => reportOpen(item)}
                   />
                 </div>
               ))

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GalleryCard } from "@/components/gallery-card";
 import { SectionHeader } from "@/components/section-header";
 import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
 /**
@@ -19,6 +20,11 @@ import type { GalleryItemSummary } from "@/domain/curation/types";
  *
  * One fetch source: reuses the shared useGallerySummaries cache — this
  * section never triggers its own fetch.
+ *
+ * Telemetry (plan T17): section_visible → IMPRESSION per visible item on
+ * first render with a deterministic idempotency key (exactly-once even under
+ * StrictMode). Callers pass a telemetrySource (role_explorer /
+ * section_explorer) so each section is attributed separately.
  */
 
 export interface FilterExplorerProps {
@@ -31,6 +37,8 @@ export interface FilterExplorerProps {
   getValues: (item: GalleryItemSummary) => string[];
   chipTestId: string;
   countTestId: string;
+  /** Telemetry attribution source for section_visible events (plan T17). */
+  telemetrySource: string;
 }
 
 function SkeletonGrid() {
@@ -55,9 +63,27 @@ export function FilterExplorer({
   getValues,
   chipTestId,
   countTestId,
+  telemetrySource,
 }: FilterExplorerProps) {
   const { items, loading, error, refetch } = useGallerySummaries();
+  const { impression } = useTelemetry();
   const [active, setActive] = useState<string | null>(null);
+  const reported = useRef(false);
+
+  // section_visible → IMPRESSION per item on first render (fire-and-forget,
+  // deterministic idempotency key so StrictMode never double-records).
+  useEffect(() => {
+    if (reported.current) return;
+    if (loading || error || items.length === 0) return;
+    reported.current = true;
+    for (const item of items) {
+      impression(
+        item.id,
+        { source: telemetrySource },
+        sectionVisibilityKey(telemetrySource, item.id),
+      );
+    }
+  }, [items, loading, error, impression, telemetrySource]);
 
   const facets = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>();

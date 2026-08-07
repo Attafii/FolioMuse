@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { GalleryCard } from "@/components/gallery-card";
 import { SectionHeader } from "@/components/section-header";
 import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
 
 /**
  * New & notable portfolios (plan T9).
@@ -14,9 +17,14 @@ import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
  *
  * States: loading (skeleton cards, real loading) → error (retry) → data
  * (cards or honest empty state).
+ *
+ * Telemetry (plan T17): section_visible → IMPRESSION per card on first
+ * render with a deterministic idempotency key — exactly-once even under
+ * StrictMode double-mounts. No page-view events (ADR-0004 non-metrics).
  */
 
 const TOP_N = 6;
+const TELEMETRY_SOURCE = "new_notable";
 
 function SkeletonGrid() {
   return (
@@ -33,7 +41,22 @@ function SkeletonGrid() {
 
 export function NewNotable() {
   const { items, loading, error, refetch } = useGallerySummaries();
+  const { impression } = useTelemetry();
   const cards = items.slice(0, TOP_N);
+  const reported = useRef(false);
+
+  useEffect(() => {
+    if (reported.current) return;
+    if (loading || error || cards.length === 0) return;
+    reported.current = true;
+    for (const card of cards) {
+      impression(
+        card.id,
+        { source: TELEMETRY_SOURCE },
+        sectionVisibilityKey(TELEMETRY_SOURCE, card.id),
+      );
+    }
+  }, [cards, loading, error, impression]);
 
   return (
     <section
