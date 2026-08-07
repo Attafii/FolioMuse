@@ -5,6 +5,7 @@ import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { EditorialCollections } from "@/components/editorial-collections";
+import { Footer } from "@/components/footer";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
 import { SectionExplorer } from "@/components/section-explorer";
@@ -86,18 +87,7 @@ export default function HomePage() {
       </main>
 
       {/* ── 9. Footer (T16) ────────────────────────────────────────────── */}
-      <footer
-        data-testid="footer"
-        className="border-t border-border"
-        aria-label="Site footer"
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="font-mono text-sm text-muted-foreground">FolioMuse</p>
-          <p className="text-sm text-muted-foreground">
-            A gallery that inspires, not clones.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 }
