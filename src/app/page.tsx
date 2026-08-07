@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Masthead } from "@/components/masthead";
 import { NewNotable } from "@/components/new-notable";
+import { EditorialCollections } from "@/components/editorial-collections";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
 import { SectionExplorer } from "@/components/section-explorer";
@@ -58,27 +59,7 @@ export default function HomePage() {
         <SectionExplorer />
 
         {/* ── 5. Editorial collections (T12) ───────────────────────────── */}
-        <section
-          aria-labelledby="collections-heading"
-          data-testid="editorial-collections"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="collections-heading"
-            eyebrow="Curated"
-            title="Editorial collections"
-            description="Hand-picked sets of portfolios around a theme."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              Collections appear once the gallery has enough accepted work.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Curated from patterns across many portfolios, never a single
-              source.
-            </p>
-          </div>
-        </section>
+        <EditorialCollections />
 
         {/* ── 6. MCP example (T13) ─────────────────────────────────────── */}
         <section
