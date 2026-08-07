@@ -44,6 +44,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // The inline theme script adds/removes the `dark` class on <html>
+      // before React hydrates, so the client DOM className intentionally
+      // differs from the server-rendered one. suppressHydrationWarning is
+      // the documented escape hatch for this exact theme-script pattern
+      // (React's warning here is a false positive — the class is applied
+      // deliberately before paint to avoid a flash of the wrong theme).
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
