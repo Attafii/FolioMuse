@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Masthead } from "@/components/masthead";
+import { NewNotable } from "@/components/new-notable";
 import { SearchHero } from "@/components/search-hero";
 import { SectionHeader } from "@/components/section-header";
 
@@ -46,25 +47,7 @@ export default function HomePage() {
         <SearchHero />
 
         {/* ── 2. New & notable (T9: GalleryCard grid) ──────────────────── */}
-        <section
-          aria-labelledby="new-notable-heading"
-          data-testid="new-notable"
-          className="flex flex-col gap-8"
-        >
-          <SectionHeader
-            id="new-notable-heading"
-            title="New and notable"
-            description="Freshly reviewed portfolios from the curation queue."
-          />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              No accepted portfolios yet.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Be the first. The gallery fills after the first curation review.
-            </p>
-          </div>
-        </section>
+        <NewNotable />
 
         {/* ── 3. Role explorer (T10) ───────────────────────────────────── */}
         <section

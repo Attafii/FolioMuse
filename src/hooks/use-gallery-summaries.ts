@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
@@ -9,62 +9,109 @@ interface GallerySummariesResponse {
   count: number;
 }
 
-interface UseGallerySummariesResult {
+interface GallerySummariesState {
   items: GalleryItemSummary[];
   count: number;
   loading: boolean;
   error: string | null;
-  refetch: () => void;
 }
 
 /**
- * Fetches /api/gallery/summaries once on mount (plan T8).
- * Client-side hook — the homepage hero filters these summaries in-memory;
- * no server-side search, no debounce libraries, no ranking (zero deps).
+ * Shared module-level cache for /api/gallery/summaries (plan T9 decision:
+ * ONE fetch source — multiple sections on the page subscribe to the same
+ * state instead of re-fetching per section).
  *
- * States: loading (skeleton) → error (retry) → data (may be empty).
+ * - First hook mount kicks off the fetch; every subsequent mount (SearchHero,
+ *   NewNotable, RoleExplorer, SectionExplorer) subscribes via
+ *   useSyncExternalStore and receives the SAME state.
+ * - refetch() re-runs the fetch and updates all subscribers.
+ * - States: loading (skeleton) → error (retry) → data (may be empty).
+ *
+ * Client-side hook — the homepage filters these summaries in-memory;
+ * no server-side search, no debounce libraries, no ranking (zero deps).
  */
-export function useGallerySummaries(): UseGallerySummariesResult {
-  const [items, setItems] = useState<GalleryItemSummary[]>([]);
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
+
+let state: GallerySummariesState = {
+  items: [],
+  count: 0,
+  loading: true,
+  error: null,
+};
+let started = false;
+const listeners = new Set<() => void>();
+
+function setState(next: GallerySummariesState) {
+  state = next;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  return state;
+}
+
+function getServerSnapshot(): GallerySummariesState {
+  // SSR/prerender: no fetch, no hydration mismatch — clients always start
+  // from the loading state and update after the shared fetch resolves.
+  return { items: [], count: 0, loading: true, error: null };
+}
+
+async function load() {
+  setState({ items: [], count: 0, loading: true, error: null });
+  try {
+    const res = await fetch("/api/gallery/summaries", {
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`Request failed (${res.status})`);
+    }
+    const data = (await res.json()) as GallerySummariesResponse;
+    const items = data.items ?? [];
+    setState({
+      items,
+      count: data.count ?? items.length,
+      loading: false,
+      error: null,
+    });
+  } catch {
+    setState({
+      items: [],
+      count: 0,
+      loading: false,
+      error: "The gallery could not be loaded right now.",
+    });
+  }
+}
+
+function ensureStarted() {
+  if (!started) {
+    started = true;
+    void load();
+  }
+}
+
+export function useGallerySummaries(): GallerySummariesState & {
+  refetch: () => void;
+} {
+  const { items, count, loading, error } = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    ensureStarted();
+  }, []);
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/gallery/summaries", {
-          cache: "no-store",
-        });
-        if (!res.ok) {
-          throw new Error(`Request failed (${res.status})`);
-        }
-        const data = (await res.json()) as GallerySummariesResponse;
-        if (cancelled) return;
-        setItems(data.items ?? []);
-        setCount(data.count ?? data.items?.length ?? 0);
-      } catch {
-        if (cancelled) return;
-        setItems([]);
-        setCount(0);
-        setError("The gallery could not be loaded right now.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
+  const refetch = useCallback(() => {
     void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [attempt]);
-
-  const refetch = useCallback(() => setAttempt((a) => a + 1), []);
+  }, []);
 
   return { items, count, loading, error, refetch };
 }
