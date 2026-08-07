@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Masthead } from "@/components/masthead";
 import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
+import { NewsletterForm } from "@/components/newsletter-form";
 import { EditorialCollections } from "@/components/editorial-collections";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
@@ -80,14 +81,7 @@ export default function HomePage() {
             title="Stay in the loop"
             description="Occasional notes on the gallery and the agent."
           />
-          <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <p className="font-display text-lg font-medium text-card-foreground">
-              The newsletter form lands here.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              No noise. Just the collections worth seeing.
-            </p>
-          </div>
+          <NewsletterForm />
         </section>
       </main>
 
