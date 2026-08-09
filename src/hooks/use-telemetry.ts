@@ -93,6 +93,13 @@ export interface Telemetry {
   ) => void;
   /** OPEN when a gallery item is opened (result open / card click). */
   open: (itemId: string, payload?: FlywheelEventPayload) => void;
+  /**
+   * SAVE when a builder bookmarks a gallery item (plan portfolio-card-system
+   * T8, ADR-0004 D1/D2: SAVE = 3, a strong action signal). Fired ONLY on
+   * bookmark-add; removal and preview toggles are local UI state because the
+   * closed flywheel vocabulary has no UNSAVE/PREVIEW event.
+   */
+  save: (itemId: string, payload?: FlywheelEventPayload) => void;
 }
 
 export function useTelemetry(): Telemetry {
@@ -129,7 +136,23 @@ export function useTelemetry(): Telemetry {
     [],
   );
 
-  return useMemo(() => ({ impression, open }), [impression, open]);
+  const save = useCallback(
+    (itemId: string, payload?: FlywheelEventPayload) => {
+      void getSubjectKey().then((subjectKey) =>
+        postEvent({
+          eventType: "SAVE",
+          subjectKey,
+          itemId,
+          occurredAt: new Date().toISOString(),
+          idempotencyKey: `save:${itemId}:${crypto.randomUUID()}`,
+          payload,
+        }),
+      );
+    },
+    [],
+  );
+
+  return useMemo(() => ({ impression, open, save }), [impression, open, save]);
 }
 
 /**
