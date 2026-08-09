@@ -72,6 +72,10 @@ export interface GalleryItemSummary {
   consentTier: ConsentTier;
   reviewedAt: string | null;
   duplicateOfId: string | null;
+  // Portfolio card system (T1): curated external screenshot + stack metadata.
+  // Safe projection only - never content, raw captures, or provenance evidence.
+  mediaUrl: string | null;
+  stackTags: string[];
   // ADR-0003 T6 safe projection: optional provenance completeness summary.
   // NEVER carries contentBlob/structureJSON/raw captures/claimant evidence.
   provenance?: ProvenanceSummary;
@@ -133,6 +137,8 @@ export interface GalleryItem {
   duplicateOfId: string | null;
   structureFingerprint: string | null; // placeholder per R8
   contentHash: string | null; // placeholder per R8
+  mediaUrl: string | null; // portfolio card system (T1): curated external screenshot
+  stackTags: string[]; // portfolio card system (T1): bounded stack metadata
   createdAt: string; // ISO 8601 datetime
   updatedAt: string; // ISO 8601 datetime
 }
@@ -145,6 +151,9 @@ export interface NewGalleryItemInput {
   styleTags: string[];
   attribution: Attribution;
   consent: ConsentRecord;
+  // Portfolio card system (T1): optional curated metadata at ingest time.
+  mediaUrl?: string | null;
+  stackTags?: string[];
 }
 
 export interface UpdateGalleryItemInput {
@@ -156,6 +165,9 @@ export interface UpdateGalleryItemInput {
   complianceStatus?: ComplianceStatus;
   status?: ItemStatus;
   reviewedAt?: string | null;
+  // Portfolio card system (T1): curated metadata is editable, attribution is not.
+  mediaUrl?: string | null;
+  stackTags?: string[];
   // NOTE: attributionId, consentRecordId, creatorName, sourceUrl, licenseType,
   // consentDate, consent, and attribution fields are intentionally absent.
   // GalleryRepository.update() MUST reject any attempt to modify attribution
@@ -169,6 +181,9 @@ export interface IngestInput {
   styleTags: string[];
   attribution: Attribution;
   consent: ConsentRecord;
+  // Portfolio card system (T5): optional curated metadata at ingest time.
+  mediaUrl?: string | null;
+  stackTags?: string[];
 }
 
 export interface ReviewDecisionInput {

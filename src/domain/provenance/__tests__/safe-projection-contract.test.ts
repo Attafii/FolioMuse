@@ -29,6 +29,9 @@ describe("safe projection: backward compatibility", () => {
     consentTier: "PATTERN_DERIVE",
     reviewedAt: "2026-01-20T00:00:00.000Z",
     duplicateOfId: null,
+    // Portfolio card system (T1): card metadata defaults on legacy summaries.
+    mediaUrl: null,
+    stackTags: [],
   };
 
   it("parses a legacy summary without a provenance field", () => {

@@ -116,6 +116,39 @@ export const AttributionSchema = z.object({
 });
 export type Attribution = z.infer<typeof AttributionSchema>;
 
+/**
+ * Curated external portfolio screenshot/media URL (portfolio card system).
+ *
+ * Privacy/security boundary (plan portfolio-card-system T1): HTTPS-only,
+ * no `javascript:`/`data:`/`file:` schemes, no localhost/loopback/private-
+ * network hosts, bounded length. Null means "no curated media yet" (legacy
+ * rows / not-yet-curated items) - never backfilled with guesses (ADR-0003 D2).
+ */
+export const MediaUrlSchema = z
+  .string()
+  .url("mediaUrl must be a valid URL")
+  .max(2048, "mediaUrl must be at most 2048 characters")
+  .refine((value) => value.startsWith("https://"), "mediaUrl must use HTTPS")
+  .refine(
+    (value) => {
+      try {
+        const host = new URL(value).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+        if (host === "localhost") return false;
+        if (host === "::1" || host === "0.0.0.0") return false;
+        if (/^127\./.test(host)) return false;
+        if (/^10\./.test(host)) return false;
+        if (/^192\.168\./.test(host)) return false;
+        if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    "mediaUrl must not target localhost or a private-network address",
+  )
+  .nullable();
+export type MediaUrl = z.infer<typeof MediaUrlSchema>;
+
 export const ConsentRecordSchema = z.object({
   tier: ConsentTierSchema,
   consentedBy: z.string().min(1, "consentedBy must not be empty"),
@@ -143,6 +176,13 @@ export const GalleryItemSummarySchema = z.object({
     .datetime({ message: "reviewedAt must be an ISO 8601 datetime" })
     .nullable(),
   duplicateOfId: z.string().nullable(),
+  // Portfolio card system (T1): curated external screenshot + stack metadata.
+  // Safe projection - media is an HTTPS reference, tags are bounded strings;
+  // never content, raw captures, or provenance evidence (ADR-0002/0003).
+  mediaUrl: MediaUrlSchema,
+  stackTags: z
+    .array(z.string().trim().min(1, "stack tag must not be empty").max(64, "stack tag must be at most 64 characters"))
+    .max(10, "at most 10 stack tags are allowed"),
   // ADR-0003 safe projection extensions (T6): provenance completeness is
   // OPTIONAL on summaries (nullable rollout) but when present is validated.
   provenance: ProvenanceSummarySchema.optional(),

@@ -4,6 +4,7 @@ import {
   AttributionSchema,
   ConsentRecordSchema,
   GalleryItemSummarySchema,
+  MediaUrlSchema,
   RejectionReasonSchema,
   CurationTelemetryEventSchema,
   QualityLevelSchema,
@@ -112,11 +113,42 @@ describe("GalleryItemSummarySchema", () => {
     consentTier: "FULL" as const,
     reviewedAt: "2026-06-01T12:00:00.000Z",
     duplicateOfId: null,
+    mediaUrl: null,
+    stackTags: [],
   };
 
   it("passes validation with valid input", () => {
     const result = GalleryItemSummarySchema.safeParse(validSummary);
     expect(result.success).toBe(true);
+  });
+
+  it("retains mediaUrl and stackTags in the parsed output", () => {
+    const result = GalleryItemSummarySchema.safeParse({
+      ...validSummary,
+      mediaUrl: "https://cdn.example.com/card.webp",
+      stackTags: ["React", "Tailwind"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mediaUrl).toBe("https://cdn.example.com/card.webp");
+      expect(result.data.stackTags).toEqual(["React", "Tailwind"]);
+    }
+  });
+
+  it("rejects overlong stackTags", () => {
+    const result = GalleryItemSummarySchema.safeParse({
+      ...validSummary,
+      stackTags: Array.from({ length: 11 }, (_, i) => `tag-${i}`),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects overlong individual stack tags", () => {
+    const result = GalleryItemSummarySchema.safeParse({
+      ...validSummary,
+      stackTags: ["x".repeat(65)],
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects input with contentBlob field (anti-cloning guard)", () => {
@@ -137,6 +169,48 @@ describe("GalleryItemSummarySchema", () => {
       reviewedAt: null,
     });
     expect(result.success).toBe(true);
+  });
+});
+
+// ─── MediaUrlSchema ───────────────────────────────────────────────────────────
+
+describe("MediaUrlSchema", () => {
+  it("accepts an https media URL", () => {
+    expect(MediaUrlSchema.safeParse("https://cdn.example.com/card.webp").success).toBe(true);
+  });
+
+  it("accepts null", () => {
+    expect(MediaUrlSchema.safeParse(null).success).toBe(true);
+  });
+
+  it("rejects http (non-HTTPS)", () => {
+    expect(MediaUrlSchema.safeParse("http://cdn.example.com/card.webp").success).toBe(false);
+  });
+
+  it("rejects javascript, data, and file schemes", () => {
+    expect(MediaUrlSchema.safeParse("javascript:alert(1)").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("data:image/png;base64,AAAA").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("file:///tmp/a.png").success).toBe(false);
+  });
+
+  it("rejects localhost and loopback hosts", () => {
+    expect(MediaUrlSchema.safeParse("https://localhost/a.png").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("https://127.0.0.1/a.png").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("https://[::1]/a.png").success).toBe(false);
+  });
+
+  it("rejects private-network hosts", () => {
+    expect(MediaUrlSchema.safeParse("https://10.0.0.5/a.png").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("https://192.168.1.10/a.png").success).toBe(false);
+    expect(MediaUrlSchema.safeParse("https://172.16.0.1/a.png").success).toBe(false);
+  });
+
+  it("rejects overlong media URLs", () => {
+    expect(MediaUrlSchema.safeParse(`https://cdn.example.com/${"a".repeat(3000)}`).success).toBe(false);
+  });
+
+  it("rejects malformed URLs", () => {
+    expect(MediaUrlSchema.safeParse("not-a-url").success).toBe(false);
   });
 });
 

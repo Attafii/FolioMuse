@@ -46,6 +46,8 @@ describe("listAccepted port contract", () => {
       "consentTier",
       "reviewedAt",
       "duplicateOfId",
+      "mediaUrl",
+      "stackTags",
     ];
 
     expect(summaryKeys).not.toContain("contentBlob");

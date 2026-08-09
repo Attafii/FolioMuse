@@ -57,6 +57,11 @@ model GalleryItem {
   duplicateOfId       String?
   structureFingerprint String?
   contentHash         String?
+  // Portfolio card system (ADR-0006): curated external screenshot reference +
+  // bounded stack metadata. Additive nullable/default rollout (ADR-0003 D2) -
+  // legacy rows stay null/[] until curated. Never raw content.
+  mediaUrl            String?
+  stackTags           String[]        @default([])
   // ADR-0003 D1/D4: nullable provenance rollout relations
   sourceRecordId      String?           @unique
   aiProvenanceId      String?           @unique
