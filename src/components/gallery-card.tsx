@@ -151,7 +151,13 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
             data-testid={CARD_TEST_IDS.title}
             className="font-display text-base font-semibold leading-snug tracking-tight text-card-foreground"
           >
-            {item.title}
+            <a
+              href={`/gallery/${item.id}`}
+              data-testid="card-detail-link"
+              className="transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            >
+              {item.title}
+            </a>
           </h3>
           <p data-testid={CARD_TEST_IDS.creator} className="text-sm text-muted-foreground">
             {item.attribution.creatorName}

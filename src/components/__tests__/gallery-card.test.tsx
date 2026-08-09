@@ -134,6 +134,31 @@ describe("GalleryCard bookmark control (T8)", () => {
   });
 });
 
+describe("GalleryCard detail navigation (T12)", () => {
+  it("renders an internal detail link to /gallery/[id]", () => {
+    const html = renderToStaticMarkup(<GalleryCard item={CARD_FIXTURES.mediaPresent} />);
+    expect(html).toContain('data-testid="card-detail-link"');
+    expect(html).toContain("/gallery/item-1");
+  });
+
+  it("preserves the external source link as a separate target", () => {
+    const html = renderToStaticMarkup(<GalleryCard item={CARD_FIXTURES.mediaPresent} />);
+    expect(html).toContain('data-testid="card-source"');
+    expect(html).toContain("https://jane-doe.com/portfolio");
+    expect(html).toContain('target="_blank"');
+  });
+
+  it("keeps the internal detail link outside the external source anchor", () => {
+    const html = renderToStaticMarkup(<GalleryCard item={CARD_FIXTURES.mediaPresent} />);
+    const anchorBlocks = html.match(/<a[\s\S]*?<\/a>/g) ?? [];
+    expect(anchorBlocks.length).toBeGreaterThanOrEqual(2);
+    for (const block of anchorBlocks) {
+      // No anchor contains another anchor (no nesting).
+      expect(block.match(/<a[\s\S]*<a/)).toBeNull();
+    }
+  });
+});
+
 describe("GalleryCard interaction structure (T4/Metis: no nested controls)", () => {
   it("does not wrap buttons inside anchors", () => {
     const html = renderToStaticMarkup(<GalleryCard item={CARD_FIXTURES.mediaPresent} />);
