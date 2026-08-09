@@ -16,8 +16,15 @@ export function BrowseSkeleton() {
       {Array.from({ length: 9 }).map((_, i) => (
         <div
           key={i}
-          className="h-44 animate-pulse rounded-xl border border-border bg-muted/60"
-        />
+          className="overflow-hidden rounded-xl border border-border bg-card"
+        >
+          {/* Media box reserves the stable 16:9 ratio (no layout shift). */}
+          <div className="aspect-[16/9] w-full animate-pulse bg-muted/60" />
+          <div className="flex flex-col gap-2 p-(--card-spacing)">
+            <div className="h-4 w-3/4 animate-pulse rounded bg-muted/60" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+          </div>
+        </div>
       ))}
     </div>
   );

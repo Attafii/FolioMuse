@@ -22,6 +22,8 @@ interface SeedItem {
   title: string;
   creatorRole: string;
   styleTags: string[];
+  stackTags: string[];
+  mediaUrl: string;
   creatorName: string;
   sourceUrl: string;
   licenseType: "CC_BY" | "EXPLICIT_PERMISSION" | "LICENSED";
@@ -34,6 +36,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Aurora Studio",
     creatorRole: "Product Designer",
     styleTags: ["minimal", "editorial", "case-study"],
+    stackTags: ["Figma", "Webflow"],
+    mediaUrl: "https://picsum.photos/seed/aurora-studio/800/450",
     creatorName: "Editorial Sample · Ana",
     sourceUrl: "https://example.com/portfolio/aurora-studio",
     licenseType: "EXPLICIT_PERMISSION",
@@ -44,6 +48,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Northstar Dev",
     creatorRole: "Frontend Developer",
     styleTags: ["dark mode", "grid-heavy", "case-study"],
+    stackTags: ["React", "Next.js", "TypeScript"],
+    mediaUrl: "https://picsum.photos/seed/northstar-dev/800/450",
     creatorName: "Editorial Sample · Ben",
     sourceUrl: "https://example.com/portfolio/northstar-dev",
     licenseType: "EXPLICIT_PERMISSION",
@@ -54,6 +60,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Marlow & Co",
     creatorRole: "Brand Designer",
     styleTags: ["bold typography", "editorial"],
+    stackTags: ["Illustrator", "Photoshop"],
+    mediaUrl: "https://picsum.photos/seed/marlow-co/800/450",
     creatorName: "Editorial Sample · Celine",
     sourceUrl: "https://example.com/portfolio/marlow-co",
     licenseType: "CC_BY",
@@ -64,6 +72,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Field Notes",
     creatorRole: "Photographer",
     styleTags: ["editorial", "portfolio"],
+    stackTags: ["Lightroom", "Capture One"],
+    mediaUrl: "https://picsum.photos/seed/field-notes/800/450",
     creatorName: "Editorial Sample · Dario",
     sourceUrl: "https://example.com/portfolio/field-notes",
     licenseType: "EXPLICIT_PERMISSION",
@@ -74,6 +84,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Ink & Grid",
     creatorRole: "Illustrator",
     styleTags: ["experimental", "grid-heavy"],
+    stackTags: ["Procreate", "After Effects"],
+    mediaUrl: "https://picsum.photos/seed/ink-grid/800/450",
     creatorName: "Editorial Sample · Elena",
     sourceUrl: "https://example.com/portfolio/ink-and-grid",
     licenseType: "LICENSED",
@@ -84,6 +96,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Loop Labs",
     creatorRole: "UX Engineer",
     styleTags: ["dark mode", "minimal", "case-study"],
+    stackTags: ["React", "Tailwind", "Vercel"],
+    mediaUrl: "https://picsum.photos/seed/loop-labs/800/450",
     creatorName: "Editorial Sample · Farid",
     sourceUrl: "https://example.com/portfolio/loop-labs",
     licenseType: "EXPLICIT_PERMISSION",
@@ -94,6 +108,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Kindred Type",
     creatorRole: "Brand Designer",
     styleTags: ["bold typography", "portfolio"],
+    stackTags: ["Glyphs", "FontForge"],
+    mediaUrl: "https://picsum.photos/seed/kindred-type/800/450",
     creatorName: "Editorial Sample · Greta",
     sourceUrl: "https://example.com/portfolio/kindred-type",
     licenseType: "CC_BY",
@@ -104,6 +120,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Signal & Form",
     creatorRole: "Product Designer",
     styleTags: ["minimal", "experimental"],
+    stackTags: ["Figma", "Framer"],
+    mediaUrl: "https://picsum.photos/seed/signal-form/800/450",
     creatorName: "Editorial Sample · Hugo",
     sourceUrl: "https://example.com/portfolio/signal-and-form",
     licenseType: "EXPLICIT_PERMISSION",
@@ -114,6 +132,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Terra Maps",
     creatorRole: "Frontend Developer",
     styleTags: ["grid-heavy", "editorial", "case-study"],
+    stackTags: ["TypeScript", "Mapbox", "Next.js"],
+    mediaUrl: "https://picsum.photos/seed/terra-maps/800/450",
     creatorName: "Editorial Sample · Ines",
     sourceUrl: "https://example.com/portfolio/terra-maps",
     licenseType: "EXPLICIT_PERMISSION",
@@ -124,6 +144,8 @@ const SEED_ITEMS: SeedItem[] = [
     title: "Editorial Sample — Quiet Machines",
     creatorRole: "Photographer",
     styleTags: ["portfolio", "editorial"],
+    stackTags: ["Lightroom", "Blender"],
+    mediaUrl: "https://picsum.photos/seed/quiet-machines/800/450",
     creatorName: "Editorial Sample · Jonas",
     sourceUrl: "https://example.com/portfolio/quiet-machines",
     licenseType: "CC_BY",
@@ -143,8 +165,18 @@ async function seedItem(item: SeedItem): Promise<void> {
     where: { sourceUrl: item.sourceUrl },
   });
   if (existing) {
+    // Upsert card metadata on existing editorial-sample rows (seed fixtures
+    // only - never real gallery content). Keeps the seed idempotent while
+    // allowing the card QA fixtures to gain curated media/stack on re-run.
+    await prisma.galleryItem.updateMany({
+      where: { attributionId: existing.id },
+      data: {
+        mediaUrl: item.mediaUrl,
+        stackTags: item.stackTags,
+      },
+    });
     skipped++;
-    console.log(`[SKIP] ${item.sourceUrl} (already present)`);
+    console.log(`[UPDATE] ${item.title} card metadata (${item.creatorRole})`);
     return;
   }
 
@@ -173,6 +205,8 @@ async function seedItem(item: SeedItem): Promise<void> {
         title: item.title,
         creatorRole: item.creatorRole,
         styleTags: item.styleTags,
+        stackTags: item.stackTags,
+        mediaUrl: item.mediaUrl,
         qualityLevel: item.qualityLevel,
         complianceStatus: "PASS",
         status: "ACCEPTED",
