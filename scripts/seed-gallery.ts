@@ -221,6 +221,82 @@ async function seedItem(item: SeedItem): Promise<void> {
   console.log(`[INSERT] ${item.title} (${item.creatorRole})`);
 }
 
+// ─── Detail reference fixture (plan portfolio-detail-page T13) ───────────────
+// Enriches the FIRST accepted editorial-sample item with curated detail
+// metadata + provenance rows (creator, source record, AI provenance) so the
+// /gallery/[id] reference page and its integration tests have real data.
+// Idempotent: re-runs update the same fixture rather than duplicating.
+// Editorial fixtures only - never real portfolio content.
+
+async function seedDetailFixture(): Promise<void> {
+  const item = await prisma.galleryItem.findFirst({
+    where: { status: "ACCEPTED" },
+    orderBy: { reviewedAt: "desc" },
+    include: { attribution: true },
+  });
+  if (!item) return;
+
+  await prisma.$transaction(async (tx) => {
+    const creator = await tx.creator.upsert({
+      where: { id: "sample-creator-1" },
+      create: { id: "sample-creator-1", name: "Editorial Sample Creator", url: null, verificationStatus: "UNVERIFIED" },
+      update: { name: "Editorial Sample Creator" },
+    });
+
+    const sourceRecord = await tx.sourceRecord.upsert({
+      where: { canonicalUrl: item.attribution.sourceUrl },
+      create: {
+        sourceUrl: item.attribution.sourceUrl,
+        canonicalUrl: item.attribution.sourceUrl,
+        captureMode: "MANUAL_SUBMISSION",
+        capturedAt: item.reviewedAt ?? new Date(),
+        creatorId: creator.id,
+      },
+      update: {},
+    });
+
+    const ai = await tx.aiProvenance.upsert({
+      where: { id: "sample-ai-1" },
+      create: {
+        id: "sample-ai-1",
+        provider: "openai",
+        modelName: "sample-model",
+        generatedAt: item.reviewedAt ?? new Date(),
+        disclosureStatus: "AI_ASSISTED",
+        promptHash: null,
+        outputHash: null,
+      },
+      update: {},
+    });
+
+    await tx.galleryItem.update({
+      where: { id: item.id },
+      data: {
+        sourceRecordId: sourceRecord.id,
+        aiProvenanceId: ai.id,
+        desktopMediaUrl: "https://picsum.photos/seed/desktop-capture/1200/675",
+        mobileMediaUrl: "https://picsum.photos/seed/mobile-capture/720/405",
+        pageIndex: ["Home", "Work", "About", "Contact"],
+        sections: [
+          { key: "hero", label: "Hero", present: true },
+          { key: "work", label: "Selected work", present: true },
+          { key: "about", label: "About", present: true },
+        ],
+        strengths: [
+          { code: "QUALITY", label: "Strong curated quality" },
+          { code: "STRUCTURE", label: "Clear section structure" },
+        ],
+        stackEvidence: [
+          { name: "React", evidenceType: "metadata" },
+          { name: "Next.js", evidenceType: "metadata" },
+        ],
+      },
+    });
+  });
+
+  console.log(`[DETAIL] enriched ${item.title} with detail metadata + provenance`);
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -233,6 +309,8 @@ async function main(): Promise<void> {
   for (const item of SEED_ITEMS) {
     await seedItem(item);
   }
+
+  await seedDetailFixture();
 
   const acceptedCount = await prisma.galleryItem.count({
     where: { status: "ACCEPTED" },
