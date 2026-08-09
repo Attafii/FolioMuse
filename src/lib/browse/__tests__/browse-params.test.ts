@@ -4,7 +4,11 @@ import {
   parseBrowseParams,
   serializeBrowseState,
 } from "@/lib/browse/browse-params";
-import { DEFAULT_BROWSE_STATE, type BrowseState } from "@/lib/browse/browse-types";
+import {
+  countActiveFilterGroups,
+  DEFAULT_BROWSE_STATE,
+  type BrowseState,
+} from "@/lib/browse/browse-types";
 
 const FULL_STATE: BrowseState = {
   q: "editorial",
@@ -95,5 +99,19 @@ describe("serializeBrowseState", () => {
   it("omits default page and sort values", () => {
     const params = serializeBrowseState({ ...DEFAULT_BROWSE_STATE, q: "x" });
     expect(params.toString()).toBe("q=x");
+  });
+});
+
+describe("countActiveFilterGroups", () => {
+  it("is 0 for the default state", () => {
+    expect(countActiveFilterGroups(DEFAULT_BROWSE_STATE)).toBe(0);
+  });
+
+  it("counts each constrained group once (multi-select facet = 1 group)", () => {
+    expect(countActiveFilterGroups(FULL_STATE)).toBe(6);
+  });
+
+  it("counts a single search query", () => {
+    expect(countActiveFilterGroups({ ...DEFAULT_BROWSE_STATE, q: "x" })).toBe(1);
   });
 });

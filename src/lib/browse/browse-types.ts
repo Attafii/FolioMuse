@@ -35,3 +35,20 @@ export const DEFAULT_BROWSE_STATE: BrowseState = {
   sort: "newest",
   page: 1,
 };
+
+/**
+ * Number of constrained filter groups (0-6): q, roles, styles, quality,
+ * consent, sort. Single source of truth for "has active filters" - used for
+ * the mobile sheet badge count and the clear-all button visibility, so the
+ * two can never drift apart.
+ */
+export function countActiveFilterGroups(state: BrowseState): number {
+  let count = 0;
+  if (state.q) count += 1;
+  if (state.roles.length) count += 1;
+  if (state.styles.length) count += 1;
+  if (state.quality.length) count += 1;
+  if (state.consent.length) count += 1;
+  if (state.sort !== DEFAULT_BROWSE_STATE.sort) count += 1;
+  return count;
+}

@@ -16,7 +16,12 @@ import { filterItems } from "@/lib/browse/browse-filter";
 import { paginateItems } from "@/lib/browse/browse-paginate";
 import { parseBrowseParams, serializeBrowseState } from "@/lib/browse/browse-params";
 import { sortItems } from "@/lib/browse/browse-sort";
-import { DEFAULT_BROWSE_STATE, type BrowseState, type SortKey } from "@/lib/browse/browse-types";
+import {
+  countActiveFilterGroups,
+  DEFAULT_BROWSE_STATE,
+  type BrowseState,
+  type SortKey,
+} from "@/lib/browse/browse-types";
 
 /**
  * /browse orchestrator (plan T5).
@@ -70,13 +75,7 @@ export function BrowseExplorer() {
     [filtered, state.page],
   );
 
-  const hasActiveFilters =
-    state.q !== "" ||
-    state.roles.length > 0 ||
-    state.styles.length > 0 ||
-    state.quality.length > 0 ||
-    state.consent.length > 0 ||
-    state.sort !== DEFAULT_BROWSE_STATE.sort;
+  const hasActiveFilters = countActiveFilterGroups(state) > 0;
 
   // ─── URL sync ───────────────────────────────────────────────────────────
   const updateUrl = useCallback(

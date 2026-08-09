@@ -12,7 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { DEFAULT_BROWSE_STATE } from "@/lib/browse/browse-types";
+import { countActiveFilterGroups } from "@/lib/browse/browse-types";
 
 /**
  * Mobile filter bottom sheet for /browse (plan T7).
@@ -26,23 +26,13 @@ import { DEFAULT_BROWSE_STATE } from "@/lib/browse/browse-types";
  * - Renders the SAME shared FilterControls as the desktop bar, so control
  *   definitions and copy never diverge (zero duplication, plan T7).
  * - Active-count badge counts constrained filter groups (q, roles, styles,
- *   qualities, consents, sort) - resets to 0 via clearAll.
+ *   qualities, consents, sort) via the shared lib helper - same predicate
+ *   as the explorer's clear-all visibility, so the two can never drift.
  */
-
-function countActiveGroups(state: FilterControlsProps["state"]): number {
-  let count = 0;
-  if (state.q) count += 1;
-  if (state.roles.length) count += 1;
-  if (state.styles.length) count += 1;
-  if (state.quality.length) count += 1;
-  if (state.consent.length) count += 1;
-  if (state.sort !== DEFAULT_BROWSE_STATE.sort) count += 1;
-  return count;
-}
 
 export function FilterSheet(props: FilterControlsProps) {
   const [open, setOpen] = useState(false);
-  const activeCount = countActiveGroups(props.state);
+  const activeCount = countActiveFilterGroups(props.state);
 
   return (
     <div className="md:hidden">
