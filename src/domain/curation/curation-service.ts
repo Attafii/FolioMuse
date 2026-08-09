@@ -27,6 +27,19 @@ import {
   CurationTelemetryEventSchema,
 } from "./schemas";
 
+import { PortfolioDetailSchema, type PortfolioDetail } from "./detail-schemas";
+import {
+  SectionDescriptorSchema,
+  StrengthDescriptorSchema,
+  StackEvidenceDescriptorSchema,
+  type SectionDescriptor,
+  type StrengthDescriptor,
+  type StackEvidenceDescriptor,
+} from "./detail-schemas";
+
+import { derivePermissionResult } from "@/domain/provenance/schemas";
+import { captureFreshnessLabel } from "@/lib/freshness";
+
 import type {
   CurationService,
   GalleryRepository,
@@ -550,5 +563,114 @@ export class CurationServiceImpl implements CurationService {
 
   async listAccepted(): Promise<GalleryItemSummary[]> {
     return this.galleryRepository.listAccepted();
+  }
+
+  // ── 12. getAcceptedDetail ─────────────────────────────────────────────────
+  // Safe detail read for /gallery/[id] (ADR-0007 T5). Public eligibility
+  // guards (ACCEPTED, non-FLAG, consent not revoked, no active removal),
+  // provenance enrichment from the provenance repository, superseding
+  // attribution applied for display (history immutable), and strict safe DTO
+  // validation before return. Similar examples are composed by the caller
+  // (deterministic tag overlap, T6).
+
+  async getAcceptedDetail(itemId: string): Promise<PortfolioDetail | null> {
+    const record = await this.galleryRepository.findDetailById(itemId);
+    if (!record) return null;
+
+    // Eligibility guards (ADR-0007 D2).
+    if (record.status !== "ACCEPTED") return null;
+    if (record.complianceStatus === "FLAG") return null;
+    if (record.consentRevokedAt !== null) return null;
+    const removal = await this.provenanceRepository.findActiveRemovalByItemId(itemId);
+    if (removal) return null;
+
+    // Provenance enrichment (never raw captures / private data).
+    const sourceRecord = record.sourceRecordId
+      ? await this.provenanceRepository.findSourceRecordById(record.sourceRecordId)
+      : null;
+    const ai = record.aiProvenanceId
+      ? await this.provenanceRepository.findAiProvenanceById(record.aiProvenanceId)
+      : null;
+    const assertion = await this.provenanceRepository.findLatestAssertionForItem(itemId);
+
+    // Superseding attribution wins for display (policy §7.2); history immutable.
+    const correctedCreator = assertion?.correctedCreatorId
+      ? await this.provenanceRepository.findCreatorById(assertion.correctedCreatorId)
+      : null;
+    const displayCreator = correctedCreator ?? (sourceRecord?.creatorId
+      ? await this.provenanceRepository.findCreatorById(sourceRecord.creatorId)
+      : null);
+
+    const licenceId = (assertion?.correctedLicenseType ?? record.attribution.licenseType) as Parameters<typeof derivePermissionResult>[0];
+    const effectivePermission = derivePermissionResult(licenceId, record.consentTier);
+    const capturedAt = sourceRecord?.capturedAt ?? null;
+
+    // Curated descriptor columns are validated at read time; invalid rows
+    // degrade to "not curated" (null) rather than failing the page.
+    const sections = SectionDescriptorSchema.array().safeParse(record.sections).success
+      ? (record.sections as unknown as SectionDescriptor[])
+      : null;
+    const strengths = StrengthDescriptorSchema.array().safeParse(record.strengths).success
+      ? (record.strengths as unknown as StrengthDescriptor[])
+      : null;
+    const stackEvidence = StackEvidenceDescriptorSchema.array().safeParse(record.stackEvidence).success
+      ? (record.stackEvidence as unknown as StackEvidenceDescriptor[])
+      : null;
+
+    const detail: PortfolioDetail = {
+      id: record.id,
+      title: record.title,
+      creatorRole: record.creatorRole,
+      styleTags: record.styleTags,
+      qualityLevel: record.qualityLevel,
+      complianceStatus: record.complianceStatus,
+      status: record.status,
+      attribution: record.attribution,
+      consentTier: record.consentTier,
+      reviewedAt: record.reviewedAt,
+      duplicateOfId: record.duplicateOfId,
+      mediaUrl: record.mediaUrl,
+      stackTags: record.stackTags,
+      provenance: {
+        hasCreator: displayCreator !== null,
+        hasSourceRecord: sourceRecord !== null,
+        hasAiProvenance: ai !== null,
+        hasConsent: true,
+        aiDisclosure: ai?.disclosureStatus ?? "UNKNOWN",
+        creator: displayCreator
+          ? {
+              id: displayCreator.id,
+              name: displayCreator.name,
+              verificationStatus: displayCreator.verificationStatus,
+            }
+          : null,
+        licence: { id: licenceId, effectivePermission },
+        source: sourceRecord
+          ? {
+              sourceUrl: sourceRecord.sourceUrl,
+              canonicalUrl: sourceRecord.canonicalUrl,
+              captureMode: sourceRecord.captureMode,
+              capturedAt: sourceRecord.capturedAt,
+            }
+          : null,
+        removalAvailable: true,
+      },
+      desktopMediaUrl: record.desktopMediaUrl,
+      mobileMediaUrl: record.mobileMediaUrl,
+      pageIndex: record.pageIndex,
+      sections,
+      strengths,
+      stackEvidence,
+      captureFreshness: {
+        capturedAt,
+        label: captureFreshnessLabel(capturedAt),
+      },
+      similarExamples: [],
+    };
+
+    // Strict safe DTO boundary (ADR-0007 D3): reject anything invalid rather
+    // than leak it. Throwing here is a programmer error, not a user path.
+    const parsed = PortfolioDetailSchema.parse(detail);
+    return parsed;
   }
 }

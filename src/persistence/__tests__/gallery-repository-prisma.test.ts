@@ -338,6 +338,39 @@ describe.skipIf(!process.env.DATABASE_URL)(
     });
 
     // ═══════════════════════════════════════════════════════════════════════
+    // SCENARIO 3c (plan portfolio-detail-page T13): findDetailById returns the
+    // internal gallery detail record with provenance linkage + consent guard.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    it("findDetailById returns detail record with detail metadata and provenance linkage", async () => {
+      const input = makeIngestInput(58, { title: "Detail Record Fixture" });
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      await repo.update(ingested.id, {
+        mediaUrl: "https://cdn.example.com/card.webp",
+        stackTags: ["React"],
+      });
+
+      const detail = await repo.findDetailById(ingested.id);
+      expect(detail).not.toBeNull();
+      expect(detail!.id).toBe(ingested.id);
+      expect(detail!.title).toBe("Detail Record Fixture");
+      expect(detail!.mediaUrl).toBe("https://cdn.example.com/card.webp");
+      expect(detail!.stackTags).toEqual(["React"]);
+      // Additive detail columns default to null/[] (no guessed backfill).
+      expect(detail!.desktopMediaUrl).toBeNull();
+      expect(detail!.pageIndex).toEqual([]);
+      expect(detail!.sections).toBeNull();
+      expect(detail!.sourceRecordId).toBeNull();
+      expect(detail!.consentRevokedAt).toBeNull();
+    });
+
+    it("findDetailById returns null for unknown ids", async () => {
+      expect(await repo.findDetailById("does-not-exist")).toBeNull();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SCENARIO 4: update with attribution modification throws
     //             AttributionModificationError.
     // ═══════════════════════════════════════════════════════════════════════

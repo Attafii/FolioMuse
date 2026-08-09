@@ -49,6 +49,7 @@ import type {
   ConsentRecord,
   ConsentTier,
   ConsentTerms,
+  GalleryDetailRecord,
   GalleryItem,
   GalleryItemSummary,
   ItemStatus,
@@ -239,6 +240,39 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
     });
 
     return dbItem ? mapDbToSummary(dbItem) : null;
+  }
+
+  async findDetailById(id: string): Promise<GalleryDetailRecord | null> {
+    const dbItem = await prisma.galleryItem.findUnique({
+      where: { id },
+      include: GALLERY_ITEM_INCLUDE,
+    });
+    if (!dbItem) return null;
+
+    return {
+      id: dbItem.id,
+      title: dbItem.title,
+      creatorRole: dbItem.creatorRole,
+      styleTags: dbItem.styleTags,
+      qualityLevel: (dbItem.qualityLevel ?? "L0") as QualityLevel,
+      complianceStatus: (dbItem.complianceStatus ?? "FLAG") as ComplianceStatus,
+      status: dbItem.status as ItemStatus,
+      attribution: mapDbAttribution(dbItem.attribution),
+      consentTier: dbItem.consent.tier as ConsentTier,
+      consentRevokedAt: dbItem.consent.revokedAt?.toISOString() ?? null,
+      reviewedAt: dbItem.reviewedAt?.toISOString() ?? null,
+      duplicateOfId: dbItem.duplicateOfId,
+      mediaUrl: dbItem.mediaUrl,
+      stackTags: dbItem.stackTags,
+      desktopMediaUrl: dbItem.desktopMediaUrl,
+      mobileMediaUrl: dbItem.mobileMediaUrl,
+      pageIndex: dbItem.pageIndex,
+      sections: dbItem.sections,
+      strengths: dbItem.strengths,
+      stackEvidence: dbItem.stackEvidence,
+      sourceRecordId: dbItem.sourceRecordId,
+      aiProvenanceId: dbItem.aiProvenanceId,
+    };
   }
 
   async update(

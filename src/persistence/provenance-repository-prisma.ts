@@ -203,6 +203,13 @@ export class ProvenanceRepositoryPrisma implements ProvenanceRepository {
     return db ? mapDbSourceRecord(db) : null;
   }
 
+  async findSourceRecordById(id: string): Promise<SourceRecord | null> {
+    const db = await prisma.sourceRecord.findUnique({
+      where: { id },
+    });
+    return db ? mapDbSourceRecord(db) : null;
+  }
+
   // ── AI provenance (metadata-minimized — policy §6.2) ─────────────────────
 
   async createAiProvenance(input: NewAiProvenanceInput): Promise<AiProvenanceRecord> {

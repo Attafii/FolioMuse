@@ -88,6 +88,38 @@ export interface GalleryItemSummary {
 
 import type { ProvenanceSummary } from "@/domain/curation/schemas";
 
+/**
+ * Internal gallery detail record for /gallery/[id] (ADR-0007 T5).
+ * Service-layer only — NEVER returned by a public API/UI directly. Carries
+ * the safe summary fields plus the provenance linkage needed for enrichment
+ * (sourceRecordId, aiProvenanceId) and the consent revocation guard
+ * (consentRevokedAt). Never carries contentBlob/structureJSON/raw captures.
+ */
+export interface GalleryDetailRecord {
+  id: string;
+  title: string;
+  creatorRole: string;
+  styleTags: string[];
+  qualityLevel: QualityLevel;
+  complianceStatus: ComplianceStatus;
+  status: ItemStatus;
+  attribution: Attribution;
+  consentTier: ConsentTier;
+  consentRevokedAt: string | null;
+  reviewedAt: string | null;
+  duplicateOfId: string | null;
+  mediaUrl: string | null;
+  stackTags: string[];
+  desktopMediaUrl: string | null;
+  mobileMediaUrl: string | null;
+  pageIndex: string[];
+  sections: unknown;
+  strengths: unknown;
+  stackEvidence: unknown;
+  sourceRecordId: string | null;
+  aiProvenanceId: string | null;
+}
+
 export interface ReviewDecision {
   itemId: string;
   decision: "ACCEPT" | "REJECT";

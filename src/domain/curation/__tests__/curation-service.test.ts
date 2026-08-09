@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type {
   GalleryItem,
   GalleryItemSummary,
+  GalleryDetailRecord,
   AuditEntry,
   OverrideDecisionInput,
   Attribution,
@@ -155,6 +156,37 @@ function createMocks(): MockRepos {
       async (id: string): Promise<GalleryItemSummary | null> => {
         const item = items.get(id);
         return item ? itemToSummary(item) : null;
+      },
+    ),
+
+    findDetailById: vi.fn(
+      async (id: string): Promise<GalleryDetailRecord | null> => {
+        const item = items.get(id);
+        if (!item) return null;
+        return {
+          id: item.id,
+          title: item.title,
+          creatorRole: item.creatorRole,
+          styleTags: item.styleTags,
+          qualityLevel: item.qualityLevel,
+          complianceStatus: item.complianceStatus,
+          status: item.status,
+          attribution: item.attribution,
+          consentTier: item.consent.tier,
+          consentRevokedAt: null,
+          reviewedAt: item.reviewedAt,
+          duplicateOfId: item.duplicateOfId,
+          mediaUrl: item.mediaUrl,
+          stackTags: item.stackTags,
+          desktopMediaUrl: null,
+          mobileMediaUrl: null,
+          pageIndex: [],
+          sections: null,
+          strengths: null,
+          stackEvidence: null,
+          sourceRecordId: null,
+          aiProvenanceId: null,
+        };
       },
     ),
 

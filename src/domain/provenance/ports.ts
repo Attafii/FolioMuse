@@ -40,6 +40,8 @@ export interface ProvenanceRepository {
   // Source records
   createSourceRecord(input: NewSourceRecordInput): Promise<SourceRecord>;
   findSourceRecordByCanonicalUrl(canonicalUrl: string): Promise<SourceRecord | null>;
+  /** Source record by id — used by the detail enrichment path (ADR-0007 T5). */
+  findSourceRecordById(id: string): Promise<SourceRecord | null>;
 
   // AI provenance (metadata-minimized — policy §6.2)
   createAiProvenance(input: NewAiProvenanceInput): Promise<AiProvenanceRecord>;

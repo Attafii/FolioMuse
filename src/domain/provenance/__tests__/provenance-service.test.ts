@@ -142,6 +142,10 @@ class FakeRepository implements ProvenanceRepository {
     return null;
   }
 
+  async findSourceRecordById(id: string): Promise<SourceRecord | null> {
+    return this.sources.get(id) ?? null;
+  }
+
   // AI provenance
   async createAiProvenance(input: {
     provider: string;

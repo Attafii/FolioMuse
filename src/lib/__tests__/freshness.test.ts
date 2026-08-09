@@ -1,7 +1,7 @@
 // Freshness label tests (plan portfolio-card-system T6).
 import { describe, it, expect } from "vitest";
 
-import { freshnessLabel } from "@/lib/freshness";
+import { captureFreshnessLabel, freshnessLabel } from "@/lib/freshness";
 
 const NOW = new Date("2026-07-20T12:00:00.000Z");
 
@@ -37,5 +37,18 @@ describe("freshnessLabel", () => {
 
   it("clamps future dates to today (no negative days)", () => {
     expect(freshnessLabel("2026-07-21T12:00:00.000Z", NOW)).toBe("Reviewed today");
+  });
+});
+
+describe("captureFreshnessLabel", () => {
+  it("returns null for missing or malformed capture dates", () => {
+    expect(captureFreshnessLabel(null, NOW)).toBeNull();
+    expect(captureFreshnessLabel("nope", NOW)).toBeNull();
+  });
+
+  it("labels capture recency with the Captured register", () => {
+    expect(captureFreshnessLabel("2026-07-20T09:00:00.000Z", NOW)).toBe("Captured today");
+    expect(captureFreshnessLabel("2026-06-01T12:00:00.000Z", NOW)).toBe("Captured 1 month ago");
+    expect(captureFreshnessLabel("2024-01-01T12:00:00.000Z", NOW)).toBe("Captured over a year ago");
   });
 });

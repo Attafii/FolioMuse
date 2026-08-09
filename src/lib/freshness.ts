@@ -20,3 +20,24 @@ export function freshnessLabel(reviewedAt: string | null, now: Date = new Date()
   }
   return "Reviewed over a year ago";
 }
+
+/**
+ * Capture freshness label for the portfolio detail page (ADR-0007 D3).
+ * Derived from `SourceRecord.capturedAt` - the authoritative capture
+ * timestamp - never a live probe. Same copy register as freshnessLabel.
+ */
+export function captureFreshnessLabel(capturedAt: string | null, now: Date = new Date()): string | null {
+  if (!capturedAt) return null;
+  const captured = new Date(capturedAt).getTime();
+  if (Number.isNaN(captured)) return null;
+
+  const days = Math.max(0, Math.floor((now.getTime() - captured) / 86_400_000));
+  if (days < 1) return "Captured today";
+  if (days < 7) return "Captured this week";
+  if (days < 30) return `Captured ${days} days ago`;
+  if (days < 365) {
+    const months = Math.max(1, Math.floor(days / 30));
+    return `Captured ${months} month${months === 1 ? "" : "s"} ago`;
+  }
+  return "Captured over a year ago";
+}

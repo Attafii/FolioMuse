@@ -65,6 +65,7 @@ export function makeRepo(): ProvenanceRepository {
     findSourceRecordByCanonicalUrl: vi.fn(async (url) =>
       [...sources.values()].find((s) => s.canonicalUrl === url) ?? null,
     ),
+    findSourceRecordById: vi.fn(async (id) => sources.get(id) ?? null),
     createAiProvenance: vi.fn(async (input) => {
       const rec: AiProvenanceRecord = {
         id: `ai-${++n}`,

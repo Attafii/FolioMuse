@@ -6,6 +6,7 @@
 import type {
   AuditEntry,
   CurationTelemetryEvent,
+  GalleryDetailRecord,
   GalleryItem,
   GalleryItemSummary,
   IngestInput,
@@ -31,6 +32,13 @@ export interface GalleryRepository {
    * This is the safe read method — NO content blob per ADR-0001.
    */
   findSummaryById(id: string): Promise<GalleryItemSummary | null>;
+
+  /**
+   * Finds the internal gallery detail record for /gallery/[id] (ADR-0007).
+   * Service-layer only: carries provenance linkage + consent revocation guard
+   * for the accepted-detail service. NEVER exposed by a public API/UI.
+   */
+  findDetailById(id: string): Promise<GalleryDetailRecord | null>;
 
   /**
    * Updates a gallery item's mutable fields.
@@ -143,4 +151,12 @@ export interface CurationService {
    * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
    */
   listAccepted(): Promise<GalleryItemSummary[]>;
+
+  /**
+   * Returns the safe detail projection for /gallery/[id] (ADR-0007 T5) or
+   * null when the record is not publicly eligible (missing, non-ACCEPTED,
+   * FLAG, archived, suspended, rejected, revoked consent, active removal).
+   * Enriched with provenance; never raw content or private data.
+   */
+  getAcceptedDetail(itemId: string): Promise<import("./detail-schemas").PortfolioDetail | null>;
 }
