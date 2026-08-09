@@ -280,6 +280,64 @@ describe.skipIf(!process.env.DATABASE_URL)(
     });
 
     // ═══════════════════════════════════════════════════════════════════════
+    // SCENARIO 3b (plan portfolio-card-system T5): media/stack projection.
+    // ingest() with curated metadata returns it in findSummaryById, legacy
+    // rows default to null/[], and update() allows metadata edits while
+    // attribution stays immutable.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    it("round-trips mediaUrl and stackTags through ingest and summary projection", async () => {
+      const input = makeIngestInput(55, {
+        title: "Card Media Projection",
+      });
+      const ingested = await repo.ingest({
+        ...input,
+        mediaUrl: "https://cdn.example.com/card.webp",
+        stackTags: ["React", "Next.js"],
+      });
+      trackIngestResult(ingested);
+
+      const summary = await repo.findSummaryById(ingested.id);
+      expect(summary).not.toBeNull();
+      expect(summary!.mediaUrl).toBe("https://cdn.example.com/card.webp");
+      expect(summary!.stackTags).toEqual(["React", "Next.js"]);
+      // Safe projection: content fields never present.
+      const summaryObj = summary as GalleryItemSummary & Record<string, unknown>;
+      expect(summaryObj).not.toHaveProperty("contentBlob");
+      expect(summaryObj).not.toHaveProperty("structureJSON");
+    });
+
+    it("defaults legacy items to mediaUrl null and stackTags []", async () => {
+      const input = makeIngestInput(56);
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      const summary = await repo.findSummaryById(ingested.id);
+      expect(summary).not.toBeNull();
+      expect(summary!.mediaUrl).toBeNull();
+      expect(summary!.stackTags).toEqual([]);
+    });
+
+    it("allows curating mediaUrl and stackTags via update while guarding attribution", async () => {
+      const input = makeIngestInput(57);
+      const ingested = await repo.ingest(input);
+      trackIngestResult(ingested);
+
+      const updated = await repo.update(ingested.id, {
+        mediaUrl: "https://cdn.example.com/updated.webp",
+        stackTags: ["TypeScript"],
+      });
+      expect(updated.mediaUrl).toBe("https://cdn.example.com/updated.webp");
+      expect(updated.stackTags).toEqual(["TypeScript"]);
+
+      // Attribution remains immutable (R3).
+      // @ts-expect-error sourceUrl is not in UpdateGalleryItemInput
+      await expect(repo.update(ingested.id, { sourceUrl: "https://evil.com" })).rejects.toThrow(
+        AttributionModificationError,
+      );
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SCENARIO 4: update with attribution modification throws
     //             AttributionModificationError.
     // ═══════════════════════════════════════════════════════════════════════

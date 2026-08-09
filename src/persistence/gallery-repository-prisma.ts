@@ -106,6 +106,8 @@ function mapDbGalleryItem(
     duplicateOfId: db.duplicateOfId,
     structureFingerprint: db.structureFingerprint,
     contentHash: db.contentHash,
+    mediaUrl: db.mediaUrl,
+    stackTags: db.stackTags,
     createdAt: db.createdAt.toISOString(),
     updatedAt: db.updatedAt.toISOString(),
   };
@@ -130,6 +132,8 @@ function mapDbToSummary(
     consentTier: db.consent.tier as ConsentTier,
     reviewedAt: db.reviewedAt?.toISOString() ?? null,
     duplicateOfId: db.duplicateOfId,
+    mediaUrl: db.mediaUrl,
+    stackTags: db.stackTags,
   };
 }
 
@@ -166,6 +170,10 @@ const ALLOWED_UPDATE_FIELDS = new Set<string>([
   "complianceStatus",
   "status",
   "reviewedAt",
+  // Portfolio card system (ADR-0006): curated metadata is editable;
+  // attribution fields remain forbidden (R3 guard).
+  "mediaUrl",
+  "stackTags",
 ]);
 
 // ─── GalleryRepositoryPrisma ────────────────────────────────────────────────────
@@ -202,6 +210,8 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
           title: input.title,
           creatorRole: input.creatorRole,
           styleTags: input.styleTags,
+          mediaUrl: input.mediaUrl ?? null,
+          stackTags: input.stackTags ?? [],
           attributionId: attribution.id,
           consentRecordId: consent.id,
           status: "PENDING_REVIEW",

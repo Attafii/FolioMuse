@@ -62,6 +62,8 @@ function makeGalleryItem(id: string, overrides?: Partial<GalleryItem>): GalleryI
     duplicateOfId: null,
     structureFingerprint: null,
     contentHash: null,
+    mediaUrl: null,
+    stackTags: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
@@ -81,6 +83,8 @@ function itemToSummary(item: GalleryItem): GalleryItemSummary {
     consentTier: item.consent.tier,
     reviewedAt: item.reviewedAt,
     duplicateOfId: item.duplicateOfId,
+    mediaUrl: item.mediaUrl,
+    stackTags: item.stackTags,
   };
 }
 
@@ -136,6 +140,8 @@ function createMocks(): MockRepos {
         styleTags: input.styleTags,
         attribution: input.attribution,
         consent: input.consent,
+        mediaUrl: input.mediaUrl ?? null,
+        stackTags: input.stackTags ?? [],
       });
       items.set(id, item);
       return item;
@@ -446,6 +452,49 @@ describe("CurationServiceImpl", () => {
     // zod will reject at runtime; TS cast needed since type lacks consent
     await expect(
       service.ingest(badInput as unknown as Parameters<typeof service.ingest>[0]),
+    ).rejects.toThrow();
+  });
+
+  // ── 4b. ingest() curated media/stack metadata (plan portfolio-card-system T5) ──
+
+  it("ingest(): accepts optional curated mediaUrl and stackTags and passes them through", async () => {
+    const summary = await service.ingest({
+      title: "Card Media Ingest",
+      creatorRole: "Designer",
+      styleTags: ["minimal"],
+      attribution: makeAttribution(),
+      consent: makeConsent(),
+      mediaUrl: "https://cdn.example.com/card.webp",
+      stackTags: ["React", "Tailwind"],
+    });
+
+    expect(summary.mediaUrl).toBe("https://cdn.example.com/card.webp");
+    expect(summary.stackTags).toEqual(["React", "Tailwind"]);
+  });
+
+  it("ingest(): rejects a non-HTTPS mediaUrl before persistence", async () => {
+    await expect(
+      service.ingest({
+        title: "Bad Media",
+        creatorRole: "Designer",
+        styleTags: [],
+        attribution: makeAttribution(),
+        consent: makeConsent(),
+        mediaUrl: "http://cdn.example.com/card.webp",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("ingest(): rejects a localhost mediaUrl before persistence", async () => {
+    await expect(
+      service.ingest({
+        title: "Bad Media",
+        creatorRole: "Designer",
+        styleTags: [],
+        attribution: makeAttribution(),
+        consent: makeConsent(),
+        mediaUrl: "https://localhost/card.webp",
+      }),
     ).rejects.toThrow();
   });
 

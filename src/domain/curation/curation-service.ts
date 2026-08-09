@@ -20,6 +20,7 @@ import type {
 import {
   AttributionSchema,
   ConsentRecordSchema,
+  MediaUrlSchema,
   QualityLevelSchema,
   ComplianceStatusSchema,
   RejectionReasonSchema,
@@ -47,6 +48,13 @@ const IngestInputSchema = z.object({
   styleTags: z.array(z.string()),
   attribution: AttributionSchema,
   consent: ConsentRecordSchema,
+  // Portfolio card system (T5): optional curated media + stack metadata.
+  // mediaUrl validated HTTPS-only (MediaUrlSchema); stackTags bounded/trimmed.
+  mediaUrl: MediaUrlSchema.optional(),
+  stackTags: z
+    .array(z.string().trim().min(1, "stack tag must not be empty").max(64, "stack tag must be at most 64 characters"))
+    .max(10, "at most 10 stack tags are allowed")
+    .optional(),
 });
 
 /**
@@ -148,6 +156,8 @@ export class CurationServiceImpl implements CurationService {
       styleTags: parsed.styleTags,
       attribution: parsed.attribution,
       consent: parsed.consent,
+      mediaUrl: parsed.mediaUrl ?? null,
+      stackTags: parsed.stackTags ?? [],
     });
 
     // Create INGEST audit entry
