@@ -62,6 +62,15 @@ model GalleryItem {
   // legacy rows stay null/[] until curated. Never raw content.
   mediaUrl            String?
   stackTags           String[]        @default([])
+  // Portfolio detail safe reference (ADR-0007 D3): bounded curated metadata
+  // for /gallery/[id]. Null/empty until curated - no guessed backfill. JSON
+  // columns hold validated descriptors only, never raw content/structure.
+  desktopMediaUrl     String?
+  mobileMediaUrl      String?
+  pageIndex           String[]        @default([])
+  sections            Json?
+  strengths           Json?
+  stackEvidence       Json?
   // ADR-0003 D1/D4: nullable provenance rollout relations
   sourceRecordId      String?           @unique
   aiProvenanceId      String?           @unique
