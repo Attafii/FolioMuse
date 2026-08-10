@@ -61,6 +61,12 @@ export function createCloudflareTurnstileVerifier(): TurnstileVerifier {
  * production must bind a deployment-backed limiter before going live.
  */
 export function createSubmissionRateLimiter(): RateLimiter {
+  // Production must inject a deployment-backed implementation before these
+  // routes are enabled. Failing closed is safer than silently running a
+  // process-local limiter that resets on every instance/restart.
+  if (process.env.NODE_ENV === "production") {
+    return { allow: () => false };
+  }
   return createSlidingWindowRateLimiter({ max: 5, windowMs: 600_000, dailyMax: 20 });
 }
 
