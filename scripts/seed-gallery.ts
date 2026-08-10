@@ -297,6 +297,86 @@ async function seedDetailFixture(): Promise<void> {
   console.log(`[DETAIL] enriched ${item.title} with detail metadata + provenance`);
 }
 
+// ─── Section library fixtures (plan section-library-detail T11) ──────────────
+// Creates SectionRecords across several taxonomy types for the first few
+// accepted editorial-sample items (crops, curated lessons, do-not-copy notes).
+// Idempotent: re-runs skip records already present for the same item/type.
+// Editorial fixtures only - never real portfolio content.
+
+const SECTION_FIXTURES: Array<{
+  sectionType: string;
+  title: string;
+  lessons: { code: string; label: string }[];
+  note: string;
+}> = [
+  {
+    sectionType: "hero",
+    title: "Editorial hero with clear message",
+    lessons: [
+      { code: "CLARITY", label: "One clear value proposition above the fold" },
+      { code: "HIERARCHY", label: "Strong type hierarchy leads the eye" },
+    ],
+    note: "Do not copy this hero verbatim - use it as a structural reference for a single clear message.",
+  },
+  {
+    sectionType: "project grid",
+    title: "Minimal project grid",
+    lessons: [
+      { code: "FOCUS", label: "Consistent card rhythm helps scanning" },
+      { code: "HIERARCHY", label: "Largest items carry the strongest work" },
+    ],
+    note: "Do not reuse these project tiles as-is; borrow the grid rhythm only.",
+  },
+  {
+    sectionType: "timeline",
+    title: "Career timeline",
+    lessons: [
+      { code: "CLARITY", label: "Chronology tells a story without paragraphs" },
+      { code: "ACCESSIBILITY", label: "Timeline entries remain readable at small sizes" },
+    ],
+    note: "Do not copy the timeline content - build your own chronology.",
+  },
+  {
+    sectionType: "contact CTA",
+    title: "Contact call to action",
+    lessons: [
+      { code: "MOTION", label: "Restrained hover feedback on the primary action" },
+      { code: "CLARITY", label: "One contact intent, one label" },
+    ],
+    note: "Do not reuse the copy; structure a single clear contact action.",
+  },
+];
+
+async function seedSectionRecords(): Promise<void> {
+  const accepted = await prisma.galleryItem.findMany({
+    where: { status: "ACCEPTED" },
+    orderBy: { reviewedAt: "desc" },
+    take: 4,
+  });
+
+  for (const item of accepted) {
+    for (const fixture of SECTION_FIXTURES) {
+      const existing = await prisma.sectionRecord.findFirst({
+        where: { itemId: item.id, sectionType: fixture.sectionType },
+      });
+      if (existing) continue;
+      await prisma.sectionRecord.create({
+        data: {
+          sectionType: fixture.sectionType,
+          title: fixture.title,
+          desktopCropUrl: `https://picsum.photos/seed/${item.id}-${fixture.sectionType.replace(/\s+/g, "-")}/1200/675`,
+          mobileCropUrl: null,
+          lessons: fixture.lessons,
+          doNotCopyNote: fixture.note,
+          itemId: item.id,
+        },
+      });
+    }
+  }
+
+  console.log(`[SECTIONS] seeded section records for ${accepted.length} items`);
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -311,6 +391,7 @@ async function main(): Promise<void> {
   }
 
   await seedDetailFixture();
+  await seedSectionRecords();
 
   const acceptedCount = await prisma.galleryItem.count({
     where: { status: "ACCEPTED" },
