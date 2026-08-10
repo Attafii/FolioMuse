@@ -206,4 +206,24 @@ describe("POST /api/events", () => {
     // that the payload is not nested - URL discipline is a client contract.
     expect(res.status).toBe(202);
   });
+
+  it("accepts a valid COLLECTION_ADD event with a flat source/context payload (section library, T4)", async () => {
+    const { POST, repo } = makeIngestor();
+    const res = await POST(
+      jsonRequest({
+        eventType: "COLLECTION_ADD",
+        subjectKey: SUBJECT_A,
+        itemId: "section-1",
+        occurredAt: "2026-08-06T00:00:00.000Z",
+        idempotencyKey: "collection_add:section-1",
+        payload: { source: "section_library", context: "section" },
+      }),
+    );
+
+    expect(res.status).toBe(202);
+    const events = await repo.listEvents({});
+    expect(events.length).toBe(1);
+    expect(events[0].eventType).toBe("COLLECTION_ADD");
+    expect(events[0].payload).toEqual({ source: "section_library", context: "section" });
+  });
 });

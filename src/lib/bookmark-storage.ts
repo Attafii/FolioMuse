@@ -61,15 +61,20 @@ export interface BookmarkStore {
 }
 
 /**
- * Create a bookmark store bound to a storage provider.
+ * Create a bookmark/collection store bound to a storage provider.
  * `getStorage` is a function so tests can swap storage between stores.
+ * `key` defaults to the bookmark key; callers can pass a distinct key for a
+ * separate namespace (e.g. section collections, plan section-library T4).
  */
-export function createBookmarkStore(getStorage: () => BookmarkStorage | null): BookmarkStore {
+export function createBookmarkStore(
+  getStorage: () => BookmarkStorage | null,
+  key: string = BOOKMARK_STORAGE_KEY,
+): BookmarkStore {
   let ids = readIds();
 
   function readIds(): Set<string> {
     try {
-      return parseStoredBookmarks(getStorage()?.getItem(BOOKMARK_STORAGE_KEY) ?? null);
+      return parseStoredBookmarks(getStorage()?.getItem(key) ?? null);
     } catch {
       return new Set();
     }
@@ -77,7 +82,7 @@ export function createBookmarkStore(getStorage: () => BookmarkStorage | null): B
 
   function writeIds(next: Set<string>): void {
     try {
-      getStorage()?.setItem(BOOKMARK_STORAGE_KEY, serializeBookmarks(next));
+      getStorage()?.setItem(key, serializeBookmarks(next));
     } catch {
       // Storage unavailable/quota/private mode: keep in-memory behavior only.
     }
@@ -101,7 +106,7 @@ export function createBookmarkStore(getStorage: () => BookmarkStorage | null): B
   }
 
   function handleStorageEvent(event: StorageEvent) {
-    if (event.key !== BOOKMARK_STORAGE_KEY) return;
+    if (event.key !== key) return;
     ids = readIds();
     notify();
   }

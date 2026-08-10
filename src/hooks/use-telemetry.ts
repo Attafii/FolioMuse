@@ -100,6 +100,12 @@ export interface Telemetry {
    * closed flywheel vocabulary has no UNSAVE/PREVIEW event.
    */
   save: (itemId: string, payload?: FlywheelEventPayload) => void;
+  /**
+   * COLLECTION_ADD when a builder adds an item/section to a local collection
+   * (plan section-library T4, ADR-0008 D7; ADR-0004: COLLECTION_ADD = 4).
+   * Fired ONLY on add; removal is local UI state (no vocabulary for unsave).
+   */
+  collectionAdd: (itemId: string, payload?: FlywheelEventPayload) => void;
 }
 
 export function useTelemetry(): Telemetry {
@@ -152,7 +158,26 @@ export function useTelemetry(): Telemetry {
     [],
   );
 
-  return useMemo(() => ({ impression, open, save }), [impression, open, save]);
+  const collectionAdd = useCallback(
+    (itemId: string, payload?: FlywheelEventPayload) => {
+      void getSubjectKey().then((subjectKey) =>
+        postEvent({
+          eventType: "COLLECTION_ADD",
+          subjectKey,
+          itemId,
+          occurredAt: new Date().toISOString(),
+          idempotencyKey: `collection_add:${itemId}:${crypto.randomUUID()}`,
+          payload,
+        }),
+      );
+    },
+    [],
+  );
+
+  return useMemo(
+    () => ({ impression, open, save, collectionAdd }),
+    [impression, open, save, collectionAdd],
+  );
 }
 
 /**

@@ -81,6 +81,7 @@ model GalleryItem {
   consent       ConsentRecord  @relation(fields: [consentRecordId], references: [id])
   sourceRecord  SourceRecord?  @relation(fields: [sourceRecordId], references: [id], onDelete: Restrict)
   aiProvenance  AiProvenance?  @relation(fields: [aiProvenanceId], references: [id], onDelete: Restrict)
+  sectionRecords SectionRecord[]
   auditEntries  AuditEntry[]
   reviewDecisions ReviewDecision[]
   ownershipClaims OwnershipClaim[]
@@ -321,4 +322,26 @@ model SupersedingAssertion {
 
   @@index([targetItemId])
   @@index([recordedAt])
+}
+
+// Section library safe reference (ADR-0008 D2): first-class section records.
+// Additive, curated metadata only - never raw content/structure/DOM. Crops are
+// pre-generated HTTPS references; lessons/notes are bounded curator-authored
+// descriptors. itemId FK is Restrict (durable, no cascade).
+model SectionRecord {
+  id              String    @id @default(cuid())
+  sectionType     String // validated against the closed taxonomy in domain (ADR-0008 D1)
+  title           String
+  desktopCropUrl  String?
+  mobileCropUrl   String?
+  lessons         Json?
+  doNotCopyNote   String?
+  itemId          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  item GalleryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([sectionType])
+  @@index([itemId])
 }
