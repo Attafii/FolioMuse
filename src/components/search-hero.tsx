@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { useTelemetry } from "@/hooks/use-telemetry";
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
@@ -21,18 +22,10 @@ import type { GalleryItemSummary } from "@/domain/curation/types";
  * - Loading shows real skeleton cards; error shows a retry action.
  * - No autocomplete library, no debounce lib, no ranking (zero deps).
  * - Telemetry (plan T17): on submit/Enter each surfaced result gets an
- *   IMPRESSION (payload carries the query — a pattern signal); opening a
+ *   IMPRESSION (payload carries the query â€” a pattern signal); opening a
  *   result (Enter on highlighted / click) fires OPEN. Privacy: hashed
- *   subject key, no page-view events (ADR-0004 non-metrics).
- */
-
-function matchesQuery(item: GalleryItemSummary, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  if (item.title.toLowerCase().includes(q)) return true;
-  if (item.creatorRole.toLowerCase().includes(q)) return true;
-  return item.styleTags.some((tag) => tag.toLowerCase().includes(q));
-}
+  *   subject key, no page-view events (ADR-0004 non-metrics).
+  */
 
 function ResultCard({
   item,
@@ -93,24 +86,43 @@ function SkeletonCards() {
 }
 
 export function SearchHero() {
-  const { items, loading, error, refetch } = useGallerySummaries();
+  const router = useRouter();
   const { impression, open } = useTelemetry();
   const [query, setQuery] = useState("");
+  // Debounced commit â†’ server-side search (300 ms, plain setTimeout).
+  const [committedQ, setCommittedQ] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const results = useMemo(
-    () => items.filter((item) => matchesQuery(item, query)),
-    [items, query],
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
   );
 
+  function commitSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setCommittedQ(value.trim());
+    }, 300);
+  }
+
+  // Server executes the search; the client receives one small page.
+  const { items, total, loading, error, refetch } = useGalleryQuery({
+    q: committedQ || undefined,
+    pageSize: 8,
+  });
+
+  const results = items;
   const hasResults = results.length > 0;
   const showPanel =
-    panelOpen && !loading && !error && (query.trim() !== "" || items.length > 0);
+    panelOpen && !loading && !error && (query.trim() !== "" || total > 0);
 
-  // Telemetry (plan T17): search_submit → IMPRESSION per surfaced result.
+  // Telemetry (plan T17): search_submit â†’ IMPRESSION per surfaced result.
   // Query string is a pattern signal (allowed per ADR-0004); per-interaction
   // idempotency key so every submit records. Never blocks UI (fire-and-forget).
   function reportSubmit() {
@@ -139,6 +151,7 @@ export function SearchHero() {
 
   function reset() {
     setQuery("");
+    setCommittedQ("");
     setActiveIndex(-1);
     openPanel();
     inputRef.current?.focus();
@@ -196,13 +209,19 @@ export function SearchHero() {
         </p>
       </div>
 
-      {/* ── Search ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="relative flex w-full max-w-2xl flex-col gap-2">
         <form
           role="search"
           onSubmit={(e) => {
             e.preventDefault();
             reportSubmit();
+            const q = query.trim();
+            if (q) {
+              router.push(`/browse?q=${encodeURIComponent(q)}`);
+            } else {
+              router.push("/browse");
+            }
           }}
           className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
         >
@@ -222,6 +241,7 @@ export function SearchHero() {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              commitSearch(e.target.value);
               openPanel();
               setActiveIndex(-1);
             }}
@@ -246,7 +266,7 @@ export function SearchHero() {
           ) : null}
         </form>
 
-        {/* ── Loading skeletons ─────────────────────────────────────────── */}
+        {/* â”€â”€ Loading skeletons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {loading ? (
           <div
             id="search-results"
@@ -257,7 +277,7 @@ export function SearchHero() {
           </div>
         ) : null}
 
-        {/* ── Error state ───────────────────────────────────────────────── */}
+        {/* â”€â”€ Error state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {!loading && error ? (
           <div
             id="search-results"
@@ -271,7 +291,7 @@ export function SearchHero() {
           </div>
         ) : null}
 
-        {/* ── Results panel ─────────────────────────────────────────────── */}
+        {/* â”€â”€ Results panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {showPanel ? (
           <div
             ref={resultsRef}
@@ -313,8 +333,8 @@ export function SearchHero() {
           </div>
         ) : null}
 
-        {/* ── Empty gallery (no data at all) ────────────────────────────── */}
-        {!loading && !error && items.length === 0 && !panelOpen ? (
+        {/* â”€â”€ Empty gallery (no data at all) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {!loading && !error && total === 0 && !panelOpen ? (
           <div
             data-testid="search-results"
             className="flex flex-col gap-2 rounded-lg border border-border bg-card p-6"

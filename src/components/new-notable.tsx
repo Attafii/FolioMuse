@@ -4,16 +4,16 @@ import { useEffect, useRef } from "react";
 
 import { GalleryCard } from "@/components/gallery-card";
 import { SectionHeader } from "@/components/section-header";
-import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
 
 /**
  * New & notable portfolios (plan T9).
  *
- * Client component — reuses the SHARED useGallerySummaries cache (ONE fetch
- * source for the whole page; the module-level cache means this section never
- * triggers its own fetch). Renders up to 6 accepted items, already ordered
- * by the API (qualityLevel DESC, reviewedAt DESC).
+ * Client component — server-ranked top page via useGalleryQuery (ONE small
+ * request; the era of shipping the whole gallery to the browser is over).
+ * Renders up to 6 accepted items, ordered by the API (qualityLevel DESC,
+ * reviewedAt DESC).
  *
  * States: loading (skeleton cards, real loading) → error (retry) → data
  * (cards or honest empty state).
@@ -44,7 +44,11 @@ function SkeletonGrid() {
 }
 
 export function NewNotable() {
-  const { items, loading, error, refetch } = useGallerySummaries();
+  // Server-side top page: quality-ranked, 6 items — ~30 KB, not the corpus.
+  const { items, loading, error, refetch } = useGalleryQuery({
+    sort: "quality",
+    pageSize: 6,
+  });
   const { impression } = useTelemetry();
   const cards = items.slice(0, TOP_N);
   const reported = useRef(false);

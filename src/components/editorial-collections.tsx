@@ -1,23 +1,26 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 
 import { GalleryCard } from "@/components/gallery-card";
 import { SectionHeader } from "@/components/section-header";
-import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { EDITORIAL_COLLECTIONS } from "@/lib/editorial-collections";
 
 /**
- * Editorial collections (plan T12).
+ * Editorial collections (plan T12, LCP refactor).
  *
  * Renders hand-written collections (src/lib/editorial-collections.ts) that
- * reference REAL seeded items by sourceUrl. Items are resolved against the
- * shared fetched summaries — references missing from the gallery are dropped
- * gracefully (no broken cards). Attribution stays on every card (R3); cards
- * link to the item's external sourceUrl in a new tab.
- *
- * ONE fetch source: reuses the shared useGallerySummaries cache.
+ * reference REAL seeded items by sourceUrl. Resolution is a single tiny
+ * server query (`source` exact-match) â€” the corpus never reaches the client.
+ * References missing from the gallery drop gracefully (no broken cards).
+ * Attribution stays on every card (R3).
  */
+
+// Every referenced sourceUrl across all collections, collected once.
+const ALL_SOURCE_URLS = [
+  ...new Set(EDITORIAL_COLLECTIONS.flatMap((c) => c.itemSourceUrls)),
+];
 
 function CollectionSkeleton() {
   return (
@@ -33,7 +36,10 @@ function CollectionSkeleton() {
 }
 
 export function EditorialCollections() {
-  const { items, loading, error, refetch } = useGallerySummaries();
+  const { items, loading, error, refetch } = useGalleryQuery({
+    source: ALL_SOURCE_URLS,
+    pageSize: Math.max(ALL_SOURCE_URLS.length, 1),
+  });
 
   const bySourceUrl = useMemo(() => {
     const map = new Map<string, (typeof items)[number]>();
@@ -82,7 +88,7 @@ export function EditorialCollections() {
         </div>
       ) : null}
 
-      {!loading && !error && items.length === 0 ? (
+      {!loading && !error && collections.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-medium text-card-foreground">
             Collections will appear once portfolios are accepted.
@@ -90,7 +96,7 @@ export function EditorialCollections() {
         </div>
       ) : null}
 
-      {!loading && !error && items.length > 0 ? (
+      {!loading && !error && collections.length > 0 ? (
         <div className="flex flex-col gap-10">
           {collections.map((collection) => (
             <article key={collection.id} className="flex flex-col gap-4">

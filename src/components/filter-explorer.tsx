@@ -1,30 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GalleryCard } from "@/components/gallery-card";
 import { SectionHeader } from "@/components/section-header";
-import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import {
+  useGalleryFacets,
+  useGalleryQuery,
+  type GalleryQueryParams,
+} from "@/hooks/use-gallery-query";
 import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
-import type { GalleryItemSummary } from "@/domain/curation/types";
 
 /**
- * Shared chip-filter section (plan T10/T11).
+ * Shared chip-filter section (plan T10/T11, LCP refactor).
  *
- * Derives distinct facet values (creatorRole for the role explorer, styleTags
- * for the section explorer) from the fetched summaries — NEVER a hardcoded
- * taxonomy. Chips show the value + a REAL count derived from data. Clicking a
- * chip filters the displayed GalleryCards to items matching that value
- * (client state only, no routing). Selecting the active chip again clears the
- * filter.
- *
- * One fetch source: reuses the shared useGallerySummaries cache — this
- * section never triggers its own fetch.
+ * Chips come from SERVER-computed facet counts (/api/gallery/facets) — never
+ * a hardcoded taxonomy, never derived from shipping the corpus to the client.
+ * Clicking a chip issues a small server-filtered page of cards; clicking the
+ * active chip clears back to the unfiltered first page.
  *
  * Telemetry (plan T17): section_visible → IMPRESSION per visible item on
  * first render with a deterministic idempotency key (exactly-once even under
- * StrictMode). Callers pass a telemetrySource (role_explorer /
- * section_explorer) so each section is attributed separately.
+ * StrictMode). Callers pass telemetrySource so sections attribute separately.
  */
 
 export interface FilterExplorerProps {
@@ -33,8 +30,8 @@ export interface FilterExplorerProps {
   eyebrow?: string;
   title: string;
   description: string;
-  /** Extract facet values from an item (single value, e.g. creatorRole). */
-  getValues: (item: GalleryItemSummary) => string[];
+  /** Which server facet group powers this explorer's chips. */
+  facetGroup: "roles" | "styles";
   chipTestId: string;
   countTestId: string;
   /** Telemetry attribution source for section_visible events (plan T17). */
@@ -46,7 +43,6 @@ function SkeletonGrid() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-xl border border-border bg-card">
-          {/* Media box reserves the stable 16:9 ratio (no layout shift). */}
           <div className="aspect-[16/9] w-full animate-pulse bg-muted/60" />
           <div className="flex flex-col gap-2 p-(--card-spacing)">
             <div className="h-4 w-3/4 animate-pulse rounded bg-muted/60" />
@@ -64,18 +60,26 @@ export function FilterExplorer({
   eyebrow,
   title,
   description,
-  getValues,
+  facetGroup,
   chipTestId,
   countTestId,
   telemetrySource,
 }: FilterExplorerProps) {
-  const { items, loading, error, refetch } = useGallerySummaries();
-  const { impression } = useTelemetry();
+  const { facets, loading: facetsLoading, error: facetsError, refetch: refetchFacets } =
+    useGalleryFacets();
   const [active, setActive] = useState<string | null>(null);
+  const { impression } = useTelemetry();
   const reported = useRef(false);
 
-  // section_visible → IMPRESSION per item on first render (fire-and-forget,
-  // deterministic idempotency key so StrictMode never double-records).
+  const queryParams: GalleryQueryParams =
+    active === null
+      ? { pageSize: 9 }
+      : facetGroup === "roles"
+        ? { role: [active], pageSize: 9 }
+        : { style: [active], pageSize: 9 };
+  const { items, loading, error, refetch } = useGalleryQuery(queryParams);
+
+  // section_visible → IMPRESSION per item on first render (fire-and-forget).
   useEffect(() => {
     if (reported.current) return;
     if (loading || error || items.length === 0) return;
@@ -89,50 +93,23 @@ export function FilterExplorer({
     }
   }, [items, loading, error, impression, telemetrySource]);
 
-  const facets = useMemo(() => {
-    const counts = new Map<string, { label: string; count: number }>();
-    for (const item of items) {
-      for (const value of getValues(item)) {
-        const key = value.trim().toLowerCase();
-        if (!key) continue;
-        const existing = counts.get(key);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          counts.set(key, { label: value.trim(), count: 1 });
-        }
-      }
-    }
-    return [...counts.values()].sort(
-      (a, b) => b.count - a.count || a.label.localeCompare(b.label),
-    );
-  }, [items, getValues]);
-
-  const visible = useMemo(() => {
-    if (!active) return items;
-    return items.filter((item) =>
-      getValues(item).some((v) => v.trim().toLowerCase() === active),
-    );
-  }, [items, active, getValues]);
+  const groupFacets = facets?.[facetGroup] ?? [];
+  const anyLoading = facetsLoading || loading;
 
   return (
-    <section
-      aria-labelledby={id}
-      data-testid={testid}
-      className="flex flex-col gap-8"
-    >
+    <section aria-labelledby={id} data-testid={testid} className="flex flex-col gap-8">
       <SectionHeader id={id} eyebrow={eyebrow} title={title} description={description} />
 
-      {loading ? <SkeletonGrid /> : null}
+      {anyLoading ? <SkeletonGrid /> : null}
 
-      {!loading && error ? (
+      {!anyLoading && (facetsError || error) ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-8">
           <p className="font-display text-lg font-medium text-card-foreground">
-            {error}
+            {facetsError ?? error}
           </p>
           <button
             type="button"
-            onClick={refetch}
+            onClick={facetsError ? refetchFacets : refetch}
             className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
           >
             Try again
@@ -140,7 +117,7 @@ export function FilterExplorer({
         </div>
       ) : null}
 
-      {!loading && !error && items.length === 0 ? (
+      {!anyLoading && !(facetsError ?? error) && groupFacets.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-medium text-card-foreground">
             Nothing to explore yet.
@@ -151,31 +128,25 @@ export function FilterExplorer({
         </div>
       ) : null}
 
-      {!loading && !error && items.length > 0 ? (
+      {!anyLoading && groupFacets.length > 0 ? (
         <>
-          <div
-            role="group"
-            aria-label={`Filter by ${title.toLowerCase()}`}
-            className="flex flex-wrap gap-2"
-          >
-            {facets.map((facet) => {
-              const isActive = active === facet.label.toLowerCase();
+          <div role="group" aria-label={`Filter by ${title.toLowerCase()}`} className="flex flex-wrap gap-2">
+            {groupFacets.map((facet) => {
+              const isActive = active === facet.value;
               return (
                 <button
-                  key={facet.label}
+                  key={facet.value}
                   type="button"
                   data-testid={chipTestId}
                   aria-pressed={isActive}
-                  onClick={() =>
-                    setActive(isActive ? null : facet.label.toLowerCase())
-                  }
+                  onClick={() => setActive(isActive ? null : facet.value)}
                   className={`inline-flex h-8 items-center gap-1.5 rounded-4xl border px-3 text-xs font-medium transition-colors ${
                     isActive
                       ? "border-ring bg-primary text-primary-foreground"
                       : "border-border bg-card text-foreground hover:border-ring/60 hover:bg-muted"
                   }`}
                 >
-                  {facet.label}
+                  {facet.value}
                   <span
                     data-testid={countTestId}
                     className={`font-mono ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}
@@ -188,19 +159,17 @@ export function FilterExplorer({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((item) => (
+            {items.map((item) => (
               <GalleryCard key={item.id} item={item} />
             ))}
           </div>
 
-          {visible.length === 0 ? (
+          {items.length === 0 ? (
             <div className="rounded-lg border border-border bg-card p-10 text-center">
               <p className="font-display text-lg font-medium text-card-foreground">
                 No portfolios match this filter.
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Try another role or tag.
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground">Try another role or tag.</p>
             </div>
           ) : null}
         </>
