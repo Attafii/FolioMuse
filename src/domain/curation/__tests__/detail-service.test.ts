@@ -1,4 +1,4 @@
-// Accepted-detail service tests (plan portfolio-detail-page T5).
+﻿// Accepted-detail service tests (plan portfolio-detail-page T5).
 // getAcceptedDetail() guards + provenance enrichment with in-memory fakes.
 // Proves: eligible records enrich safely; hidden records return null; no
 // private/raw fields ever leave the service; superseding attribution wins.
@@ -92,6 +92,7 @@ function makeHarness(detail: GalleryDetailRecord | null, opts: {
     listAccepted: async () => [],
     listAcceptedFiltered: async () => ({ items: [], total: 0 }),
     getPublicFacets: async () => ({
+      total: 0,
       roles: [],
       styles: [],
       stacks: [],

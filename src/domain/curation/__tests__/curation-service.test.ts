@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type {
   GalleryItem,
@@ -23,7 +23,7 @@ import type { PatternSignalState } from "@/domain/provenance/types";
 
 import { CurationServiceImpl } from "@/domain/curation/curation-service";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeAttribution(overrides?: Partial<Attribution>): Attribution {
   return {
@@ -89,7 +89,7 @@ function itemToSummary(item: GalleryItem): GalleryItemSummary {
   };
 }
 
-// ─── Mock Factory ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Mock Factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface MockRepos {
   galleryRepo: GalleryRepository;
@@ -246,6 +246,7 @@ function createMocks(): MockRepos {
 
     listAcceptedFiltered: vi.fn(async () => ({ items: [], total: 0 })),
     getPublicFacets: vi.fn(async () => ({
+      total: 0,
       roles: [],
       styles: [],
       stacks: [],
@@ -308,7 +309,7 @@ function createMocks(): MockRepos {
         if (rebuildQueueControl.failEnqueue) {
           throw new Error("rebuild queue unavailable");
         }
-        // Idempotent by (removalId, signalId) key — duplicates are no-ops.
+        // Idempotent by (removalId, signalId) key â€” duplicates are no-ops.
         const exists = enqueuedRebuilds.some(
           (e) => e.removalId === input.removalId && e.signalId === input.signalId,
         );
@@ -334,7 +335,7 @@ function createMocks(): MockRepos {
   };
 }
 
-// ─── Test Suite ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Test Suite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("CurationServiceImpl", () => {
   let mocks: MockRepos;
@@ -352,7 +353,7 @@ describe("CurationServiceImpl", () => {
     mocks.consoleSpy.mockClear();
   });
 
-  // ── 1. review() compliance=FAIL → REJECTED ─────────────────────────────────
+  // â”€â”€ 1. review() compliance=FAIL â†’ REJECTED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("review(): compliance=FAIL rejects regardless of quality level", async () => {
     // Ingest an item first
@@ -366,7 +367,7 @@ describe("CurationServiceImpl", () => {
 
     const item = mocks.items.values().next().value as GalleryItem;
 
-    // Pass itemId as extra field — zod runtime validation requires it
+    // Pass itemId as extra field â€” zod runtime validation requires it
     const decision = {
       itemId: item.id,
       decision: "REJECT" as const,
@@ -389,7 +390,7 @@ describe("CurationServiceImpl", () => {
     expect(rejectEntries[0].decision).toBe("COMPLIANCE_FAIL");
   });
 
-  // ── 2. review() quality=L1 → REJECTED ─────────────────────────────────────
+  // â”€â”€ 2. review() quality=L1 â†’ REJECTED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("review(): quality below L2 rejects with QUALITY_BELOW_THRESHOLD", async () => {
     await service.ingest({
@@ -423,7 +424,7 @@ describe("CurationServiceImpl", () => {
     expect(rejectEntries[0].decision).toBe("QUALITY_BELOW_THRESHOLD");
   });
 
-  // ── 3. review() compliance=PASS + quality=L3 → ACCEPTED ───────────────────
+  // â”€â”€ 3. review() compliance=PASS + quality=L3 â†’ ACCEPTED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("review(): compliance=PASS + quality=L3 accepts", async () => {
     await service.ingest({
@@ -457,7 +458,7 @@ describe("CurationServiceImpl", () => {
     expect(acceptEntries[0].decision).toBe("ACCEPT");
   });
 
-  // ── 4. ingest() valid → PENDING_REVIEW + INGEST audit ─────────────────────
+  // â”€â”€ 4. ingest() valid â†’ PENDING_REVIEW + INGEST audit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("ingest(): valid input returns PENDING_REVIEW summary and creates INGEST audit", async () => {
     const summary = await service.ingest({
@@ -479,10 +480,10 @@ describe("CurationServiceImpl", () => {
     expect(ingestEntries[0].itemId).toBe(summary.id);
   });
 
-  // ── 5. ingest() missing consent → throws ──────────────────────────────────
+  // â”€â”€ 5. ingest() missing consent â†’ throws â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("ingest(): missing consent field throws ZodError", async () => {
-    // Send an object without consent — zod IngestInputSchema will reject
+    // Send an object without consent â€” zod IngestInputSchema will reject
     const badInput = {
       title: "Test",
       creatorRole: "Designer",
@@ -497,7 +498,7 @@ describe("CurationServiceImpl", () => {
     ).rejects.toThrow();
   });
 
-  // ── 4b. ingest() curated media/stack metadata (plan portfolio-card-system T5) ──
+  // â”€â”€ 4b. ingest() curated media/stack metadata (plan portfolio-card-system T5) â”€â”€
 
   it("ingest(): accepts optional curated mediaUrl and stackTags and passes them through", async () => {
     const summary = await service.ingest({
@@ -540,7 +541,7 @@ describe("CurationServiceImpl", () => {
     ).rejects.toThrow();
   });
 
-  // ── 6. ingest() incomplete attribution → throws ───────────────────────────
+  // â”€â”€ 6. ingest() incomplete attribution â†’ throws â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("ingest(): attribution with empty creatorName throws", async () => {
     await expect(
@@ -554,7 +555,7 @@ describe("CurationServiceImpl", () => {
     ).rejects.toThrow();
   });
 
-  // ── 7. escalate() → ESCALATE audit entry ──────────────────────────────────
+  // â”€â”€ 7. escalate() â†’ ESCALATE audit entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("escalate(): creates ESCALATE audit entry", async () => {
     await service.escalate("item-1", "Needs senior review");
@@ -568,7 +569,7 @@ describe("CurationServiceImpl", () => {
     expect(escalateEntries[0].actorId).toBe("system");
   });
 
-  // ── 8. suspend() → SUSPEND audit + repo.suspend() called ──────────────────
+  // â”€â”€ 8. suspend() â†’ SUSPEND audit + repo.suspend() called â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("suspend(): creates SUSPEND audit entry and calls repository.suspend()", async () => {
     await service.ingest({
@@ -592,7 +593,7 @@ describe("CurationServiceImpl", () => {
     expect(suspendEntries[0].rationale).toBe("Policy violation");
   });
 
-  // ── 9. archive() → ARCHIVE audit + repo.archive() called ──────────────────
+  // â”€â”€ 9. archive() â†’ ARCHIVE audit + repo.archive() called â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("archive(): creates ARCHIVE audit entry and calls repository.archive()", async () => {
     await service.ingest({
@@ -616,7 +617,7 @@ describe("CurationServiceImpl", () => {
     expect(archiveEntries[0].rationale).toBe("Stale content");
   });
 
-  // ── 10. revokeConsent() → atomic invalidation + archive + audit + enqueue ──
+  // â”€â”€ 10. revokeConsent() â†’ atomic invalidation + archive + audit + enqueue â”€â”€
 
   it("revokeConsent(): records revokedAt, marks signals stale, archives item, enqueues rebuilds", async () => {
     await service.ingest({
@@ -657,7 +658,7 @@ describe("CurationServiceImpl", () => {
     expect(mocks.enqueuedRebuilds[0].triggeredAt).toBe(revokedAt);
   });
 
-  it("revokeConsent(): retry is idempotent — revokedAt unchanged, single enqueue per signal", async () => {
+  it("revokeConsent(): retry is idempotent â€” revokedAt unchanged, single enqueue per signal", async () => {
     await service.ingest({
       title: "Consent Revoked Twice",
       creatorRole: "Designer",
@@ -674,7 +675,7 @@ describe("CurationServiceImpl", () => {
     // Duplicate revocation (e.g. concurrent request retry).
     await service.revokeConsent(item.id);
 
-    // revokedAt is never overwritten (policy §3.2).
+    // revokedAt is never overwritten (policy Â§3.2).
     expect(mocks.consentRevokedAt.get(item.id)).toBe(firstRevokedAt);
     // Single rebuild enqueue per (removalId, signalId) key.
     expect(mocks.enqueuedRebuilds.length).toBe(1);
@@ -698,7 +699,7 @@ describe("CurationServiceImpl", () => {
       /rebuild queue unavailable/,
     );
 
-    // Stale state remains DURABLE despite the enqueue failure (policy §9.1:
+    // Stale state remains DURABLE despite the enqueue failure (policy Â§9.1:
     // invalidation commits BEFORE enqueue; the enqueue is retryable).
     const revokedAt = mocks.consentRevokedAt.get(item.id);
     expect(revokedAt).toBeTruthy();
@@ -716,7 +717,7 @@ describe("CurationServiceImpl", () => {
     expect(mocks.enqueuedRebuilds[0].removalId).toBe(item.id);
   });
 
-  // ── 11. flagDuplicate() → DUPLICATE_FLAG audit + repo.flagDuplicate() ─────
+  // â”€â”€ 11. flagDuplicate() â†’ DUPLICATE_FLAG audit + repo.flagDuplicate() â”€â”€â”€â”€â”€
 
   it("flagDuplicate(): creates DUPLICATE_FLAG audit and calls repository.flagDuplicate()", async () => {
     await service.ingest({
@@ -743,7 +744,7 @@ describe("CurationServiceImpl", () => {
     expect(summary.duplicateOfId).toBe("item-original");
   });
 
-  // ── 12. triggerReReview() → RE_REVIEW audit + updateStatus(PENDING_REREVIEW) ──
+  // â”€â”€ 12. triggerReReview() â†’ RE_REVIEW audit + updateStatus(PENDING_REREVIEW) â”€â”€
 
   it("triggerReReview(): creates RE_REVIEW audit and updates status to PENDING_REREVIEW", async () => {
     await service.ingest({
@@ -769,7 +770,7 @@ describe("CurationServiceImpl", () => {
     expect(summary.status).toBe("PENDING_REREVIEW");
   });
 
-  // ── 13. overrideReview() → OVERRIDE audit entry ───────────────────────────
+  // â”€â”€ 13. overrideReview() â†’ OVERRIDE audit entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("overrideReview(): creates OVERRIDE audit entry and updates item status", async () => {
     await service.ingest({
@@ -800,7 +801,7 @@ describe("CurationServiceImpl", () => {
     expect(overrideEntries[0].actorId).toBe("senior-reviewer");
   });
 
-  // ── 14. emitTelemetry() invoked for every action ──────────────────────────
+  // â”€â”€ 14. emitTelemetry() invoked for every action â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("emitTelemetry(): fires [telemetry] console.log for every action", async () => {
     // Perform an action that triggers telemetry
@@ -839,7 +840,7 @@ describe("CurationServiceImpl", () => {
     expect(ingestTelemetry.length).toBe(1);
   });
 
-  // ── 15. No delete() / contentBlob on mock ────────────────────────────────
+  // â”€â”€ 15. No delete() / contentBlob on mock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("mock has no delete method (anti-cloning guard at interface level)", () => {
     expect("delete" in mocks.galleryRepo).toBe(false);
@@ -853,7 +854,7 @@ describe("CurationServiceImpl", () => {
     expect("findFullContentById" in mocks.galleryRepo).toBe(false);
   });
 
-  // ── 16. listAccepted() — public gallery read path (plan T4) ──────────────
+  // â”€â”€ 16. listAccepted() â€” public gallery read path (plan T4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it("listAccepted(): delegates to repository and returns summaries", async () => {
     // Seed the in-memory repo with two accepted, non-flagged items and one
@@ -895,7 +896,7 @@ describe("CurationServiceImpl", () => {
     const accepted = await service.listAccepted();
 
     expect(accepted).toHaveLength(2);
-    // Ordered qualityLevel DESC → L3 before L2.
+    // Ordered qualityLevel DESC â†’ L3 before L2.
     expect(accepted[0].id).toBe(itemB.id);
     expect(accepted[1].id).toBe(itemA.id);
 
@@ -907,7 +908,7 @@ describe("CurationServiceImpl", () => {
   });
 
   it("listAccepted(): excludes flagged, suspended, and unreviewed items", async () => {
-    // FLAG-flagged item — accepted status but compliance FLAG → excluded.
+    // FLAG-flagged item â€” accepted status but compliance FLAG â†’ excluded.
     const flagged = await service.ingest({
       title: "Flagged",
       creatorRole: "Designer",
@@ -925,7 +926,7 @@ describe("CurationServiceImpl", () => {
       reviewerId: "reviewer-1",
     });
 
-    // SUSPENDED item — high quality but suspended → excluded.
+    // SUSPENDED item â€” high quality but suspended â†’ excluded.
     const suspended = await service.ingest({
       title: "Suspended",
       creatorRole: "Engineer",
@@ -944,7 +945,7 @@ describe("CurationServiceImpl", () => {
     });
     await service.suspend(suspended.id, "Compliance review pending");
 
-    // Unreviewed item → excluded.
+    // Unreviewed item â†’ excluded.
     await service.ingest({
       title: "Unreviewed",
       creatorRole: "Designer",
