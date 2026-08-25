@@ -4,6 +4,9 @@
 // NO Prisma imports — these are pure TypeScript interfaces.
 
 import type {
+  GalleryQuery,
+} from "@/lib/gallery-query";
+import type {
   AuditEntry,
   CurationTelemetryEvent,
   GalleryDetailRecord,
@@ -65,6 +68,24 @@ export interface GalleryRepository {
    * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
    */
   listAccepted(): Promise<GalleryItemSummary[]>;
+
+  /**
+   * Server-side filtered + paginated variant of listAccepted (LCP fix):
+   * executes the shared gallery query with skip/take and returns one page
+   * plus total count. Same safe projection as listAccepted.
+   */
+  listAcceptedFiltered(
+    query: GalleryQuery,
+  ): Promise<{ items: GalleryItemSummary[]; total: number }>;
+
+  /** Facet counts for filter UIs, computed server-side (no item payloads). */
+  getPublicFacets(): Promise<{
+    roles: { value: string; count: number }[];
+    styles: { value: string; count: number }[];
+    stacks: { value: string; count: number }[];
+    qualities: { value: string; count: number }[];
+    consents: { value: string; count: number }[];
+  }>;
 
   // NO delete() — deletion is forbidden per curation-rubric.
   // NO findFullContentById() — no exportable content blob per ADR-0001.
@@ -151,6 +172,20 @@ export interface CurationService {
    * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
    */
   listAccepted(): Promise<GalleryItemSummary[]>;
+
+  /** Server-side filtered + paginated read (LCP fix). Same safe projection. */
+  listAcceptedFiltered(
+    query: GalleryQuery,
+  ): Promise<{ items: GalleryItemSummary[]; total: number }>;
+
+  /** Facet counts for filter UIs, computed server-side (no item payloads). */
+  getPublicFacets(): Promise<{
+    roles: { value: string; count: number }[];
+    styles: { value: string; count: number }[];
+    stacks: { value: string; count: number }[];
+    qualities: { value: string; count: number }[];
+    consents: { value: string; count: number }[];
+  }>;
 
   /**
    * Returns the safe detail projection for /gallery/[id] (ADR-0007 T5) or

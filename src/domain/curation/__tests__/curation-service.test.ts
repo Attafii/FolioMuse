@@ -180,6 +180,7 @@ function createMocks(): MockRepos {
           stackTags: item.stackTags,
           desktopMediaUrl: null,
           mobileMediaUrl: null,
+          githubUrl: null,
           pageIndex: [],
           sections: null,
           strengths: null,
@@ -242,6 +243,15 @@ function createMocks(): MockRepos {
         )
         .map(itemToSummary);
     }),
+
+    listAcceptedFiltered: vi.fn(async () => ({ items: [], total: 0 })),
+    getPublicFacets: vi.fn(async () => ({
+      roles: [],
+      styles: [],
+      stacks: [],
+      qualities: [],
+      consents: [],
+    })),
   } as GalleryRepository;
 
   const auditRepo = {

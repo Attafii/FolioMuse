@@ -49,6 +49,7 @@ function baseDetail(id: string, overrides: Partial<GalleryDetailRecord> = {}): G
     stackTags: ["React", "Tailwind"],
     desktopMediaUrl: "https://cdn.example.com/desktop.webp",
     mobileMediaUrl: null,
+    githubUrl: null,
     pageIndex: ["Home", "Work"],
     sections: null,
     strengths: null,
@@ -89,6 +90,14 @@ function makeHarness(detail: GalleryDetailRecord | null, opts: {
       throw new Error("not used");
     },
     listAccepted: async () => [],
+    listAcceptedFiltered: async () => ({ items: [], total: 0 }),
+    getPublicFacets: async () => ({
+      roles: [],
+      styles: [],
+      stacks: [],
+      qualities: [],
+      consents: [],
+    }),
   };
 
   const provenanceRepo: ProvenanceRepository = {

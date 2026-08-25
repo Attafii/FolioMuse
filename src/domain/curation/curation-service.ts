@@ -6,6 +6,8 @@
 
 import { z } from "zod";
 
+import type { GalleryQuery } from "@/lib/gallery-query";
+
 import type {
   AuditAction,
   CurationTelemetryEvent,
@@ -112,6 +114,34 @@ const QUALITY_NUMERIC: Record<QualityLevel, number> = {
 
 // ─── Implementation ────────────────────────────────────────────────────────────
 
+// ─── Typed Ingest Rejection ──────────────────────────────────────────────────────
+// Stable, human-readable rejection surface for ingest validation failures.
+// Mirrors the AttributionModificationError precedent in types.ts: callers
+// match on message fragments (e.g. verify scripts, API handlers) while the
+// structured Zod issues remain available on the error for programmatic use.
+
+export class IngestRejectionError extends Error {
+  constructor(
+    public readonly reason: string,
+    public readonly issues: z.ZodIssue[],
+  ) {
+    super(`Ingest rejected: ${reason}.`);
+    this.name = "IngestRejectionError";
+  }
+}
+
+/** Map Zod issues to a stable rejection reason by top-level failure path. */
+function ingestRejectionReason(issues: z.ZodIssue[]): string {
+  const paths = issues.map((issue) => issue.path.join("."));
+  if (paths.some((p) => p === "consent" || p.startsWith("consent."))) {
+    return "consent tier invalid or missing";
+  }
+  if (paths.some((p) => p === "attribution" || p.startsWith("attribution."))) {
+    return "incomplete attribution";
+  }
+  return "invalid input";
+}
+
 export class CurationServiceImpl implements CurationService {
   constructor(
     private readonly galleryRepository: GalleryRepository,
@@ -123,8 +153,17 @@ export class CurationServiceImpl implements CurationService {
   // ── 1. ingest ─────────────────────────────────────────────────────────────────
 
   async ingest(input: IngestInput): Promise<GalleryItemSummary> {
-    // Validate input structure
-    const parsed = IngestInputSchema.parse(input);
+    // Validate input structure — safeParse so schema failures surface as a
+    // stable IngestRejectionError (with reason routed by failure path)
+    // instead of a raw ZodError, keeping the rejection contract readable.
+    const parsedResult = IngestInputSchema.safeParse(input);
+    if (!parsedResult.success) {
+      throw new IngestRejectionError(
+        ingestRejectionReason(parsedResult.error.issues),
+        parsedResult.error.issues,
+      );
+    }
+    const parsed = parsedResult.data;
 
     // Enforce attribution completeness (all 4 fields — R3 guard)
     const { attribution } = parsed;
@@ -565,6 +604,21 @@ export class CurationServiceImpl implements CurationService {
     return this.galleryRepository.listAccepted();
   }
 
+  // ── 11b. listAcceptedFiltered / getPublicFacets ──────────────────────────────
+  // Server-side pagination/search + facet counts (LCP fix): the public API
+  // never ships the whole corpus. Pure delegation — the repository owns the
+  // ACCEPTED + non-FLAG invariant and query execution.
+
+  async listAcceptedFiltered(
+    query: GalleryQuery,
+  ): Promise<{ items: GalleryItemSummary[]; total: number }> {
+    return this.galleryRepository.listAcceptedFiltered(query);
+  }
+
+  async getPublicFacets() {
+    return this.galleryRepository.getPublicFacets();
+  }
+
   // ── 12. getAcceptedDetail ─────────────────────────────────────────────────
   // Safe detail read for /gallery/[id] (ADR-0007 T5). Public eligibility
   // guards (ACCEPTED, non-FLAG, consent not revoked, no active removal),
@@ -657,6 +711,7 @@ export class CurationServiceImpl implements CurationService {
       },
       desktopMediaUrl: record.desktopMediaUrl,
       mobileMediaUrl: record.mobileMediaUrl,
+      githubUrl: record.githubUrl ?? null,
       pageIndex: record.pageIndex,
       sections,
       strengths,

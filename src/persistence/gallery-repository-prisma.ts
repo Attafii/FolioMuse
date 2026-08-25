@@ -34,6 +34,11 @@
 // ────────────────────────────────────────────────────────────────────────────────
 
 import { prisma } from "@/lib/prisma";
+import {
+  buildGalleryOrderBy,
+  buildGalleryWhere,
+  type GalleryQuery,
+} from "@/lib/gallery-query";
 import type {
   Attribution as AttributionModel,
   ConsentRecord as ConsentRecordModel,
@@ -134,6 +139,7 @@ function mapDbToSummary(
     reviewedAt: db.reviewedAt?.toISOString() ?? null,
     duplicateOfId: db.duplicateOfId,
     mediaUrl: db.mediaUrl,
+    githubUrl: db.githubUrl ?? null,
     stackTags: db.stackTags,
   };
 }
@@ -266,6 +272,7 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
       stackTags: dbItem.stackTags,
       desktopMediaUrl: dbItem.desktopMediaUrl,
       mobileMediaUrl: dbItem.mobileMediaUrl,
+      githubUrl: dbItem.githubUrl ?? null,
       pageIndex: dbItem.pageIndex,
       sections: dbItem.sections,
       strengths: dbItem.strengths,
@@ -366,6 +373,83 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
     });
 
     return dbItems.map(mapDbToSummary);
+  }
+
+  /**
+   * Server-side filtered + paginated read (LCP fix): executes the shared
+   * gallery query with skip/take and returns one page plus total count.
+   * Replaces shipping the entire corpus to the client.
+   */
+  async listAcceptedFiltered(
+    query: GalleryQuery,
+  ): Promise<{ items: GalleryItemSummary[]; total: number }> {
+    const where = buildGalleryWhere(query);
+    const orderBy = buildGalleryOrderBy(query);
+
+    const [dbItems, total] = await Promise.all([
+      prisma.galleryItem.findMany({
+        where,
+        orderBy,
+        take: query.pageSize,
+        skip: (query.page - 1) * query.pageSize,
+        include: GALLERY_ITEM_INCLUDE,
+      }),
+      prisma.galleryItem.count({ where }),
+    ]);
+
+    return { items: dbItems.map(mapDbToSummary), total };
+  }
+
+  /**
+   * Facet counts for filter UIs — computed server-side so clients never need
+   * the full corpus. Tag arrays are counted in-memory over slim rows
+   * (four small columns; no item payloads leave the server).
+   */
+  async getPublicFacets(): Promise<{
+    roles: { value: string; count: number }[];
+    styles: { value: string; count: number }[];
+    stacks: { value: string; count: number }[];
+    qualities: { value: string; count: number }[];
+    consents: { value: string; count: number }[];
+  }> {
+    const [roleGroups, slim] = await Promise.all([
+      prisma.galleryItem.groupBy({
+        by: ["creatorRole"],
+        _count: true,
+        where: { status: "ACCEPTED", complianceStatus: { not: "FLAG" } },
+      }),
+      prisma.galleryItem.findMany({
+        where: { status: "ACCEPTED", complianceStatus: { not: "FLAG" } },
+        select: {
+          styleTags: true,
+          stackTags: true,
+          qualityLevel: true,
+          consent: { select: { tier: true } },
+        },
+      }),
+    ]);
+
+    const tally = (values: string[]) => {
+      const map = new Map<string, number>();
+      for (const v of values) {
+        const key = v.trim().toLowerCase();
+        if (!key) continue;
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+      return [...map.entries()]
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+    };
+
+    return {
+      roles: roleGroups
+        .map((g) => ({ value: g.creatorRole, count: g._count }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
+      styles: tally(slim.flatMap((s) => s.styleTags)),
+      stacks: tally(slim.flatMap((s) => s.stackTags)),
+      qualities: tally(slim.map((s) => s.qualityLevel ?? "").filter(Boolean)),
+      consents: tally(slim.map((s) => s.consent.tier)),
+    };
   }
 }
 
