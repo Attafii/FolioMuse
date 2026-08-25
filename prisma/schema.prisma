@@ -47,6 +47,7 @@ model GalleryItem {
   id                  String            @id @default(cuid())
   title               String
   creatorRole         String
+  profession          String?           @default("GENERAL")
   styleTags           String[]          @default([])
   qualityLevel        String?
   complianceStatus    String?
@@ -67,6 +68,9 @@ model GalleryItem {
   // columns hold validated descriptors only, never raw content/structure.
   desktopMediaUrl     String?
   mobileMediaUrl      String?
+  // Public source repository when the portfolio is open source (verified
+  // via GitHub API before seeding). Nullable; display-only reference.
+  githubUrl           String?
   pageIndex           String[]        @default([])
   sections            Json?
   strengths           Json?
