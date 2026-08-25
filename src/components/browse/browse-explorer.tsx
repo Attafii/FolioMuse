@@ -9,13 +9,12 @@ import { FilterSheet } from "@/components/browse/filter-sheet";
 import { ResultsGrid } from "@/components/browse/results-grid";
 import { ConsentTierSchema, QualityLevelSchema } from "@/domain/curation/schemas";
 import type { FlywheelEventPayload } from "@/domain/flywheel/types";
-import { useGallerySummaries } from "@/hooks/use-gallery-summaries";
+import {
+  useGalleryFacets,
+  useGalleryQuery,
+} from "@/hooks/use-gallery-query";
 import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
-import { deriveFacets } from "@/lib/browse/browse-facets";
-import { filterItems } from "@/lib/browse/browse-filter";
-import { paginateItems } from "@/lib/browse/browse-paginate";
 import { parseBrowseParams, serializeBrowseState } from "@/lib/browse/browse-params";
-import { sortItems } from "@/lib/browse/browse-sort";
 import {
   countActiveFilterGroups,
   DEFAULT_BROWSE_STATE,
@@ -24,28 +23,21 @@ import {
 } from "@/lib/browse/browse-types";
 
 /**
- * /browse orchestrator (plan T5).
+ * /browse orchestrator (plan T5, LCP refactor).
  *
- * URL is the single source of truth: every filter/sort/page change is
- * serialized into searchParams via router.replace (replace, not push, so
- * back never steps through each keystroke/filter). Filtering, sorting,
- * facets, and pagination all derive from `state` parsed off the URL - there
- * is no local mirror of filter state.
+ * URL remains the single source of truth for filter state. The difference:
+ * filtering/sorting/pagination now execute SERVER-SIDE — the explorer
+ * serializes BrowseState into an API query and renders the returned page
+ * (~30 KB), instead of downloading and filtering the entire corpus.
  *
- * The only local state is the search input DRAFT (a typing buffer committed
- * to the URL after a 300ms debounce) and the mobile sheet's open flag.
+ * The only local state is the search input DRAFT (300 ms debounce into the
+ * URL, which re-triggers the server query) and the mobile sheet's flag.
+ * Facet chips come from /api/gallery/facets (server-computed counts).
  *
- * Data comes from the shared useGallerySummaries cache - no new fetch, no
- * server fetch, no direct API calls (plan T5 MUST NOT).
- *
- * Telemetry (plan T5): on filter/sort/page change, fire IMPRESSION per
- * visible page item with a deterministic idempotency key derived from
- * (source, itemId, state-signature) so repeat navigations to the same URL
- * never double-record. Payload stays within the validated flywheel shape:
- * { source: "browse" } plus { query } when search is active (ADR-0004).
- * OPEN events are out of scope - GalleryCard has no open wiring and is not
- * modified (plan T5 note).
+ * Telemetry unchanged: IMPRESSION per visible item keyed on state signature.
  */
+
+const PAGE_SIZE = 12;
 
 /** Toggle a value in a list, case-insensitively (OR within facet). */
 function toggleValue<T extends string>(list: T[], value: T): T[] {
@@ -58,23 +50,25 @@ export function BrowseExplorer() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { items, loading, error, refetch } = useGallerySummaries();
   const { impression } = useTelemetry();
 
   // URL is the single source of truth for the filter state.
   const state = useMemo(() => parseBrowseParams(searchParams), [searchParams]);
 
-  // Derived pipeline (all pure, from Task 1-3 libs).
-  const filtered = useMemo(
-    () => sortItems(filterItems(items, state), state),
-    [items, state],
-  );
-  const facets = useMemo(() => deriveFacets(items), [items]);
-  const { pageItems, totalPages, totalCount, page } = useMemo(
-    () => paginateItems(filtered, state.page),
-    [filtered, state.page],
-  );
+  // Server executes the query; total drives pagination.
+  const { items, total, loading, error, refetch } = useGalleryQuery({
+    q: state.q || undefined,
+    role: state.roles.length ? state.roles : undefined,
+    style: state.styles.length ? state.styles : undefined,
+    quality: state.quality.length ? state.quality : undefined,
+    consent: state.consent.length ? state.consent : undefined,
+    sort: state.sort,
+    page: state.page,
+    pageSize: PAGE_SIZE,
+  });
+  const { facets, loading: facetsLoading } = useGalleryFacets();
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasActiveFilters = countActiveFilterGroups(state) > 0;
 
   // ─── URL sync ───────────────────────────────────────────────────────────
@@ -182,24 +176,30 @@ export function BrowseExplorer() {
   }, [state]);
 
   useEffect(() => {
-    if (loading || error || pageItems.length === 0) return;
+    if (loading || error || items.length === 0) return;
     const payload: FlywheelEventPayload = state.q
       ? { source: "browse", query: state.q }
       : { source: "browse" };
-    for (const item of pageItems) {
+    for (const item of items) {
       impression(
         item.id,
         payload,
         sectionVisibilityKey(`browse:${signature}`, item.id),
       );
     }
-  }, [pageItems, signature, loading, error, impression, state.q]);
+  }, [items, signature, loading, error, impression, state.q]);
 
-  // ─── Render composition (states delegate to Task 8 views) ───────────────
+  // ─── Render composition ────────────────────────────────────────────────
   const controlsProps = {
     state,
-    facets,
-    resultCount: totalCount,
+    facets: facets ?? {
+      roles: [],
+      styles: [],
+      stacks: [],
+      qualities: [],
+      consents: [],
+    },
+    resultCount: total,
     searchValue: searchDraft,
     hasActiveFilters,
     onSearchChange: handleSearchChange,
@@ -233,15 +233,17 @@ export function BrowseExplorer() {
         </p>
       </header>
 
-      {loading ? <BrowseSkeleton /> : null}
+      {loading && items.length === 0 ? <BrowseSkeleton /> : null}
 
       {!loading && error ? (
         <BrowseError error={error} onRetry={refetch} />
       ) : null}
 
-      {!loading && !error && items.length === 0 ? <BrowseEmpty /> : null}
+      {!loading && !error && total === 0 && !hasActiveFilters && state.q === "" ? (
+        <BrowseEmpty />
+      ) : null}
 
-      {!loading && !error && items.length > 0 ? (
+      {!loading && !error && !(total === 0 && !hasActiveFilters && state.q === "") ? (
         <>
           <FilterBar {...controlsProps} />
 
@@ -249,17 +251,18 @@ export function BrowseExplorer() {
             <FilterSheet {...controlsProps} />
           </div>
 
-          {pageItems.length === 0 ? (
+          {items.length === 0 ? (
             <BrowseNoResults onClearAll={handleClearAll} />
           ) : (
             <ResultsGrid
-              pageItems={pageItems}
-              totalCount={totalCount}
-              page={page}
+              pageItems={items}
+              totalCount={total}
+              page={state.page}
               totalPages={totalPages}
               onPageChange={handlePageChange}
             />
           )}
+          {facetsLoading ? null : null}
         </>
       ) : null}
     </section>

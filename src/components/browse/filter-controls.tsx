@@ -3,7 +3,7 @@
 import { Search, X } from "lucide-react";
 import type { Ref } from "react";
 
-import type { BrowseFacets, Facet } from "@/lib/browse/browse-facets";
+import type { GalleryFacet, GalleryFacets } from "@/hooks/use-gallery-query";
 import type { BrowseState, SortKey } from "@/lib/browse/browse-types";
 
 /**
@@ -20,7 +20,7 @@ import type { BrowseState, SortKey } from "@/lib/browse/browse-types";
 
 export interface FilterControlsProps {
   state: BrowseState;
-  facets: BrowseFacets;
+  facets: GalleryFacets;
   /** Live filtered result count (shown next to search). */
   resultCount: number;
   /** Controlled search draft (debounced commit lives in the explorer). */
@@ -38,7 +38,7 @@ export interface FilterControlsProps {
 
 interface FacetGroupProps {
   label: string;
-  facets: Facet[];
+  facets: GalleryFacet[];
   active: string[];
   testId: string;
   onToggle: (value: string) => void;
