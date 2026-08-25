@@ -98,7 +98,7 @@ function MediaRegion({ item }: { item: GalleryItemSummary }) {
             decoding="async"
             referrerPolicy="no-referrer"
             onError={() => setFailed(true)}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 ease-[var(--ease-standard)] group-hover/card:scale-[1.03]"
           />
         ) : (
           <div
@@ -222,6 +222,18 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
         </div>
         <div className="flex items-center gap-2">
           <CardBookmark itemId={item.id} />
+          {item.githubUrl ? (
+            <a
+              href={item.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="card-github"
+              aria-label={`Open-source repository for ${item.title} (opens in new tab)`}
+              className="inline-flex items-center rounded-md px-2 py-1 font-mono text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              GitHub
+            </a>
+          ) : null}
           <a
             href={sourceLabel}
             target="_blank"

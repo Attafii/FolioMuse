@@ -74,13 +74,40 @@ describe("PortfolioDetailView", () => {
     expect(html).toContain('data-testid="capture-freshness"');
   });
 
-  it("renders desktop and mobile capture slots with explicit alt/fallback", () => {
+  it("renders the desktop hero capture with explicit alt and no-referrer policy", () => {
     const html = renderToStaticMarkup(<PortfolioDetailView detail={detail()} />);
     expect(html).toContain('data-testid="desktop-capture"');
-    expect(html).toContain('data-testid="mobile-capture"');
     expect(html).toContain("desktop capture");
-    expect(html).toContain("No mobile capture");
     expect(html).toContain('referrerPolicy="no-referrer"');
+  });
+
+  it("omits the mobile companion figure when no mobile capture exists", () => {
+    // baseDetail() has mobileMediaUrl: null — saaspo-style hero renders the
+    // desktop preview only; no empty mobile slot, no fallback copy.
+    const html = renderToStaticMarkup(<PortfolioDetailView detail={detail()} />);
+    expect(html).not.toContain('data-testid="mobile-capture"');
+    expect(html).not.toContain("No mobile capture");
+  });
+
+  it("renders the mobile companion figure when a mobile capture exists", () => {
+    const html = renderToStaticMarkup(
+      <PortfolioDetailView
+        detail={detail({
+          mobileMediaUrl: "https://cdn.example.com/mobile.webp",
+        })}
+      />,
+    );
+    expect(html).toContain('data-testid="mobile-capture"');
+  });
+
+  it("links the open-source repository when githubUrl is present", () => {
+    const withGithub = renderToStaticMarkup(
+      <PortfolioDetailView detail={detail({ githubUrl: "https://github.com/janedoe/portfolio" })} />,
+    );
+    expect(withGithub).toContain('data-testid="detail-github"');
+    expect(withGithub).toContain("Open source");
+    const withoutGithub = renderToStaticMarkup(<PortfolioDetailView detail={detail()} />);
+    expect(withoutGithub).not.toContain('data-testid="detail-github"');
   });
 
   it("never renders prohibited or private fields", () => {

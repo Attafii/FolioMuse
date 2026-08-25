@@ -19,47 +19,12 @@ const QUALITY_LABELS: Record<string, string> = {
   L4: "L4 · Exemplary",
 };
 
-function Capture({
-  label,
-  url,
-  title,
-  creator,
-}: {
-  label: string;
-  url: string | null;
-  title: string;
-  creator: string;
-}) {
-  return (
-    <figure>
-      <div
-        data-testid={label === "Desktop" ? "desktop-capture" : "mobile-capture"}
-        className="relative w-full overflow-hidden rounded-xl border border-border bg-muted/40"
-        style={{ aspectRatio: "16 / 9" }}
-      >
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- documented tradeoff (ADR-0006/0007)
-          <img
-            src={url}
-            alt={`${title} by ${creator} - ${label.toLowerCase()} capture`}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              No {label.toLowerCase()} capture
-            </span>
-          </div>
-        )}
-      </div>
-      <figcaption className="mt-2 font-mono text-xs text-muted-foreground">
-        {label} capture
-      </figcaption>
-    </figure>
-  );
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
@@ -67,6 +32,8 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
   const source = provenance?.source ?? null;
   const licence = provenance?.licence ?? null;
   const creator = provenance?.creator ?? null;
+  const host = hostnameOf(detail.attribution.sourceUrl);
+  const heroUrl = detail.desktopMediaUrl ?? detail.mediaUrl;
 
   return (
     <main
@@ -94,33 +61,75 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
         </p>
       </header>
 
-      {/* ── Captures (media-led) ─────────────────────────────────────────── */}
-      <section aria-labelledby="captures-heading" className="flex flex-col gap-6">
-        <h2 id="captures-heading" className="font-display text-xl font-semibold tracking-tight">
-          Captures
-        </h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Capture
-            label="Desktop"
-            url={detail.desktopMediaUrl ?? detail.mediaUrl}
-            title={detail.title}
-            creator={detail.attribution.creatorName}
-          />
-          <Capture
-            label="Mobile"
-            url={detail.mobileMediaUrl}
-            title={detail.title}
-            creator={detail.attribution.creatorName}
-          />
+      {/* ── Live preview (media-led hero, real screenshot — no fake chrome) ── */}
+      <section aria-labelledby="preview-heading" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="preview-heading" className="font-display text-xl font-semibold tracking-tight">
+            Live preview
+          </h2>
+          {detail.captureFreshness.label ? (
+            <p
+              data-testid="capture-freshness"
+              className="font-mono text-xs text-muted-foreground"
+            >
+              {detail.captureFreshness.label}
+            </p>
+          ) : null}
         </div>
-        {detail.captureFreshness.label ? (
-          <p
-            data-testid="capture-freshness"
-            className="font-mono text-xs text-muted-foreground"
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+          {/* Desktop capture — primary surface; links out for attribution (R3). */}
+          <a
+            href={detail.attribution.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Visit ${detail.title} by ${detail.attribution.creatorName} (opens in new tab)`}
+            className="group/hero block overflow-hidden rounded-xl border border-border bg-muted/40 shadow-sm transition-shadow duration-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {detail.captureFreshness.label}
-          </p>
-        ) : null}
+            {heroUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- documented tradeoff (ADR-0006/0007)
+              <img
+                data-testid="desktop-capture"
+                src={heroUrl}
+                alt={`${detail.title} by ${detail.attribution.creatorName} - desktop capture`}
+                loading="eager"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="aspect-[16/10] w-full object-cover object-top transition-transform duration-500 ease-[var(--ease-standard)] group-hover/hero:scale-[1.02]"
+              />
+            ) : (
+              <div className="flex aspect-[16/10] w-full items-center justify-center">
+                <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  No desktop capture
+                </span>
+              </div>
+            )}
+          </a>
+          {/* Mobile capture — compact companion (hidden when absent). */}
+          {detail.mobileMediaUrl ? (
+            <a
+              href={detail.attribution.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-hidden="true"
+              tabIndex={-1}
+              className="hidden overflow-hidden rounded-xl border border-border bg-muted/40 shadow-sm md:block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- documented tradeoff (ADR-0006/0007) */}
+              <img
+                data-testid="mobile-capture"
+                src={detail.mobileMediaUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="aspect-[480/750] w-full object-cover object-top"
+              />
+            </a>
+          ) : null}
+        </div>
+        <figcaption className="font-mono text-xs text-muted-foreground">
+          Desktop capture · {host}
+        </figcaption>
       </section>
 
       {/* ── Metadata rail ────────────────────────────────────────────────── */}
@@ -257,6 +266,23 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
                 </a>
               </dd>
             </div>
+            {detail.githubUrl ? (
+              <div className="flex flex-col gap-1">
+                <dt className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">Source repository</dt>
+                <dd>
+                  <a
+                    data-testid="detail-github"
+                    href={detail.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 font-mono text-sm text-primary underline-offset-4 transition-colors hover:underline"
+                  >
+                    Open source
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </dd>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-1">
               <dt className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">Licence</dt>
               <dd>{licence?.id ?? detail.attribution.licenseType}</dd>
