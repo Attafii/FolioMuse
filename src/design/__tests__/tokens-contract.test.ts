@@ -209,11 +209,16 @@ describe("design token contract (src/app/globals.css)", () => {
     expect(css).toMatch(/--ease-(standard|spring)\s*:/);
   });
 
-  it("keeps exactly one accent hue family (cobalt, 255) with documented status hues only", () => {
-    // Every oklch hue in the file must belong to the documented families:
-    // warm neutrals (45-80), destructive (25-27), success (150),
-    // warning (65-70), cobalt accent (255).
-    const allowed = new Set([25, 27, 45, 60, 65, 70, 75, 80, 150, 255]);
+  it("keeps one interface accent (cobalt 255) plus the documented profession data-hue grid", () => {
+    // Interface accent stays cobalt-only. The profession tint system adds a
+    // CLOSED semantic hue grid (docs/design/design-tokens.md §Profession
+    // tints): rose 350, emerald 162, indigo 278, fuchsia 322, sky 232,
+    // orange 55, lime 135, red 27, slate 261, amber 78, brown 69,
+    // steel 241, green 151, pink 342, cyan 197, developer-neutral 250.
+    const allowed = new Set([
+      25, 27, 45, 50, 55, 60, 65, 69, 70, 75, 78, 80, 135, 150, 151, 162, 197,
+      232, 241, 250, 255, 256, 261, 278, 322, 342, 350,
+    ]);
     for (const m of css.matchAll(/oklch\(\s*[\d.]+\s+[\d.]+\s+([\d.]+)/g)) {
       const hue = parseFloat(m[1]);
       expect(allowed.has(hue), `undocumented hue family ${hue}`).toBe(true);
