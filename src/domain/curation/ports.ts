@@ -1,7 +1,7 @@
-// ─── Port Interfaces ──────────────────────────────────────────────────────────────
+﻿// â”€â”€â”€ Port Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Framework-agnostic domain interfaces. Implementations live in src/persistence/
-// and MUST NOT be imported by UI code (AGENTS.md §7).
-// NO Prisma imports — these are pure TypeScript interfaces.
+// and MUST NOT be imported by UI code (AGENTS.md Â§7).
+// NO Prisma imports â€” these are pure TypeScript interfaces.
 
 import type {
   GalleryQuery,
@@ -21,7 +21,7 @@ import type {
   UpdateGalleryItemInput,
 } from "./types";
 
-// ─── GalleryRepository ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ GalleryRepository â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface GalleryRepository {
   /** Creates a new gallery item in PENDING_REVIEW status. */
@@ -32,7 +32,7 @@ export interface GalleryRepository {
 
   /**
    * Finds a gallery item summary (metadata + attribution only).
-   * This is the safe read method — NO content blob per ADR-0001.
+   * This is the safe read method â€” NO content blob per ADR-0001.
    */
   findSummaryById(id: string): Promise<GalleryItemSummary | null>;
 
@@ -63,7 +63,7 @@ export interface GalleryRepository {
   suspend(id: string): Promise<GalleryItem>;
 
   /**
-   * Lists accepted gallery item summaries (safe projection — NO content blob
+   * Lists accepted gallery item summaries (safe projection â€” NO content blob
    * per ADR-0001). Returns only status === "ACCEPTED" items, ordered
    * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
    */
@@ -80,6 +80,7 @@ export interface GalleryRepository {
 
   /** Facet counts for filter UIs, computed server-side (no item payloads). */
   getPublicFacets(): Promise<{
+    total: number;
     roles: { value: string; count: number }[];
     styles: { value: string; count: number }[];
     stacks: { value: string; count: number }[];
@@ -87,11 +88,11 @@ export interface GalleryRepository {
     consents: { value: string; count: number }[];
   }>;
 
-  // NO delete() — deletion is forbidden per curation-rubric.
-  // NO findFullContentById() — no exportable content blob per ADR-0001.
+  // NO delete() â€” deletion is forbidden per curation-rubric.
+  // NO findFullContentById() â€” no exportable content blob per ADR-0001.
 }
 
-// ─── AuditRepository ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ AuditRepository â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface AuditRepository {
   /** Creates a new audit entry (append-only). */
@@ -100,11 +101,11 @@ export interface AuditRepository {
   /** Retrieves all audit entries for a given gallery item. */
   findByItemId(itemId: string): Promise<AuditEntry[]>;
 
-  // NO update() — audit entries are immutable.
-  // NO delete() — audit entries are never deleted.
+  // NO update() â€” audit entries are immutable.
+  // NO delete() â€” audit entries are never deleted.
 }
 
-// ─── CurationService ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ CurationService â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface CurationService {
   /**
@@ -115,8 +116,8 @@ export interface CurationService {
 
   /**
    * Applies a review decision. Enforces:
-   * - compliance=FAIL → reject regardless of quality
-   * - quality < L2 → reject
+   * - compliance=FAIL â†’ reject regardless of quality
+   * - quality < L2 â†’ reject
    * Logs an audit entry.
    */
   review(decision: ReviewDecisionInput): Promise<GalleryItemSummary>;
@@ -167,7 +168,7 @@ export interface CurationService {
   emitTelemetry(event: CurationTelemetryEvent): void;
 
   /**
-   * Lists accepted gallery item summaries (safe projection — NO content blob
+   * Lists accepted gallery item summaries (safe projection â€” NO content blob
    * per ADR-0001/ADR-0002). Returns only status === "ACCEPTED" items, ordered
    * qualityLevel DESC, reviewedAt DESC. Compliance-flagged items are excluded.
    */
@@ -180,6 +181,7 @@ export interface CurationService {
 
   /** Facet counts for filter UIs, computed server-side (no item payloads). */
   getPublicFacets(): Promise<{
+    total: number;
     roles: { value: string; count: number }[];
     styles: { value: string; count: number }[];
     stacks: { value: string; count: number }[];

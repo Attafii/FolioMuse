@@ -6,7 +6,7 @@ import { Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useGalleryQuery } from "@/hooks/use-gallery-query";
+import { useGalleryFacets, useGalleryQuery } from "@/hooks/use-gallery-query";
 import { useTelemetry } from "@/hooks/use-telemetry";
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
@@ -116,6 +116,7 @@ export function SearchHero() {
     q: committedQ || undefined,
     pageSize: 8,
   });
+  const { facets } = useGalleryFacets();
 
   const results = items;
   const hasResults = results.length > 0;
@@ -193,20 +194,39 @@ export function SearchHero() {
     <section
       aria-labelledby="masthead-heading"
       data-testid="masthead"
-      className="flex flex-col gap-8 py-12 sm:py-16"
+      className="relative flex flex-col gap-8 overflow-hidden py-12 sm:py-16"
     >
+      {/* Aurora mesh — decorative only, hidden from AT, reduced-motion safe. */}
+      <div aria-hidden className="gallery-mesh" />
       <div className="flex max-w-3xl flex-col gap-4">
         <p className="font-mono text-sm text-muted-foreground">FolioMuse</p>
         <h1
           id="masthead-heading"
           className="font-display text-4xl font-semibold tracking-tighter sm:text-5xl lg:text-6xl"
         >
-          Build a portfolio that is genuinely your own.
+          Build a portfolio that is{" "}
+          <span className="text-gradient">genuinely your own.</span>
         </h1>
         <p className="max-w-[65ch] text-lg leading-relaxed text-muted-foreground">
           Informed by real examples, sharpened by AI feedback, assembled with
           an agent.
         </p>
+        {facets ? (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {facets.roles.reduce((sum, r) => sum + r.count, 0).toLocaleString()}
+            </span>
+            portfolios
+            <span aria-hidden className="text-border">·</span>
+            <span className="font-semibold text-foreground">{facets.roles.length}</span>
+            professions
+            <span aria-hidden className="text-border">·</span>
+            <span className="font-semibold text-foreground">
+              {facets.styles.length.toLocaleString()}
+            </span>
+            styles
+          </p>
+        ) : null}
       </div>
 
       {/* â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}

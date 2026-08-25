@@ -406,20 +406,22 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
    * (four small columns; no item payloads leave the server).
    */
   async getPublicFacets(): Promise<{
+    total: number;
     roles: { value: string; count: number }[];
     styles: { value: string; count: number }[];
     stacks: { value: string; count: number }[];
     qualities: { value: string; count: number }[];
     consents: { value: string; count: number }[];
   }> {
-    const [roleGroups, slim] = await Promise.all([
+    const publicWhere = { status: "ACCEPTED", complianceStatus: { not: "FLAG" } } as const;
+    const [roleGroups, slim, total] = await Promise.all([
       prisma.galleryItem.groupBy({
         by: ["creatorRole"],
         _count: true,
-        where: { status: "ACCEPTED", complianceStatus: { not: "FLAG" } },
+        where: publicWhere,
       }),
       prisma.galleryItem.findMany({
-        where: { status: "ACCEPTED", complianceStatus: { not: "FLAG" } },
+        where: publicWhere,
         select: {
           styleTags: true,
           stackTags: true,
@@ -427,6 +429,7 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
           consent: { select: { tier: true } },
         },
       }),
+      prisma.galleryItem.count({ where: publicWhere }),
     ]);
 
     const tally = (values: string[]) => {
@@ -442,6 +445,7 @@ export class GalleryRepositoryPrisma implements GalleryRepository {
     };
 
     return {
+      total,
       roles: roleGroups
         .map((g) => ({ value: g.creatorRole, count: g._count }))
         .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -10,16 +10,17 @@ import {
   type GalleryQueryParams,
 } from "@/hooks/use-gallery-query";
 import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
+import { roleChipStyle } from "@/lib/design/roles";
 
 /**
  * Shared chip-filter section (plan T10/T11, LCP refactor).
  *
- * Chips come from SERVER-computed facet counts (/api/gallery/facets) — never
+ * Chips come from SERVER-computed facet counts (/api/gallery/facets) â€” never
  * a hardcoded taxonomy, never derived from shipping the corpus to the client.
  * Clicking a chip issues a small server-filtered page of cards; clicking the
  * active chip clears back to the unfiltered first page.
  *
- * Telemetry (plan T17): section_visible → IMPRESSION per visible item on
+ * Telemetry (plan T17): section_visible â†’ IMPRESSION per visible item on
  * first render with a deterministic idempotency key (exactly-once even under
  * StrictMode). Callers pass telemetrySource so sections attribute separately.
  */
@@ -43,10 +44,10 @@ function SkeletonGrid() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="aspect-[16/9] w-full animate-pulse bg-muted/60" />
+          <div className="aspect-[16/9] w-full shimmer" />
           <div className="flex flex-col gap-2 p-(--card-spacing)">
-            <div className="h-4 w-3/4 animate-pulse rounded bg-muted/60" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+            <div className="h-4 w-3/4 rounded shimmer" />
+            <div className="h-3 w-1/2 rounded shimmer" />
           </div>
         </div>
       ))}
@@ -79,7 +80,7 @@ export function FilterExplorer({
         : { style: [active], pageSize: 9 };
   const { items, loading, error, refetch } = useGalleryQuery(queryParams);
 
-  // section_visible → IMPRESSION per item on first render (fire-and-forget).
+  // section_visible â†’ IMPRESSION per item on first render (fire-and-forget).
   useEffect(() => {
     if (reported.current) return;
     if (loading || error || items.length === 0) return;
@@ -140,10 +141,15 @@ export function FilterExplorer({
                   data-testid={chipTestId}
                   aria-pressed={isActive}
                   onClick={() => setActive(isActive ? null : facet.value)}
+                  style={
+                    facetGroup === "roles" && !isActive
+                      ? roleChipStyle(facet.value)
+                      : undefined
+                  }
                   className={`inline-flex h-8 items-center gap-1.5 rounded-4xl border px-3 text-xs font-medium transition-colors ${
                     isActive
                       ? "border-ring bg-primary text-primary-foreground"
-                      : "border-border bg-card text-foreground hover:border-ring/60 hover:bg-muted"
+                      : "border-transparent hover:border-ring/60 hover:brightness-95 dark:hover:brightness-110"
                   }`}
                 >
                   {facet.value}

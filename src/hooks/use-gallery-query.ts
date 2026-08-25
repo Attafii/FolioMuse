@@ -34,6 +34,8 @@ export interface GalleryFacet {
 
 /** Shape served by /api/gallery/facets (superset used by all filter UIs). */
 export interface GalleryFacets {
+  /** Grand total of accepted portfolios (top-level on the API payload). */
+  total?: number;
   roles: GalleryFacet[];
   styles: GalleryFacet[];
   stacks: GalleryFacet[];

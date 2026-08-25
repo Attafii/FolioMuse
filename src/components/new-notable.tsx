@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 
@@ -10,16 +10,16 @@ import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
 /**
  * New & notable portfolios (plan T9).
  *
- * Client component — server-ranked top page via useGalleryQuery (ONE small
+ * Client component â€” server-ranked top page via useGalleryQuery (ONE small
  * request; the era of shipping the whole gallery to the browser is over).
  * Renders up to 6 accepted items, ordered by the API (qualityLevel DESC,
  * reviewedAt DESC).
  *
- * States: loading (skeleton cards, real loading) → error (retry) → data
+ * States: loading (skeleton cards, real loading) â†’ error (retry) â†’ data
  * (cards or honest empty state).
  *
- * Telemetry (plan T17): section_visible → IMPRESSION per card on first
- * render with a deterministic idempotency key — exactly-once even under
+ * Telemetry (plan T17): section_visible â†’ IMPRESSION per card on first
+ * render with a deterministic idempotency key â€” exactly-once even under
  * StrictMode double-mounts. No page-view events (ADR-0004 non-metrics).
  */
 
@@ -32,10 +32,10 @@ function SkeletonGrid() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-xl border border-border bg-card">
           {/* Media box reserves the stable 16:9 ratio (no layout shift). */}
-          <div className="aspect-[16/9] w-full animate-pulse bg-muted/60" />
+          <div className="aspect-[16/9] w-full shimmer" />
           <div className="flex flex-col gap-2 p-(--card-spacing)">
-            <div className="h-4 w-3/4 animate-pulse rounded bg-muted/60" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+            <div className="h-4 w-3/4 rounded shimmer" />
+            <div className="h-3 w-1/2 rounded shimmer" />
           </div>
         </div>
       ))}
@@ -44,7 +44,7 @@ function SkeletonGrid() {
 }
 
 export function NewNotable() {
-  // Server-side top page: quality-ranked, 6 items — ~30 KB, not the corpus.
+  // Server-side top page: quality-ranked, 6 items â€” ~30 KB, not the corpus.
   const { items, loading, error, refetch } = useGalleryQuery({
     sort: "quality",
     pageSize: 6,

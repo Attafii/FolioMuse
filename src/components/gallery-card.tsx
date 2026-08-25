@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -16,6 +16,7 @@ import {
   CARD_TEST_IDS,
 } from "@/components/gallery-card-fixtures";
 import { freshnessLabel } from "@/lib/freshness";
+import { roleChipStyle } from "@/lib/design/roles";
 import type { GalleryItemSummary, QualityLevel } from "@/domain/curation/types";
 
 /**
@@ -30,11 +31,11 @@ export function isEditorialSample(item: GalleryItemSummary): boolean {
 }
 
 const QUALITY_LEVEL_LABELS: Record<QualityLevel, string> = {
-  L0: "L0 · Unusable",
-  L1: "L1 · Minimal",
-  L2: "L2 · Adequate",
-  L3: "L3 · Strong",
-  L4: "L4 · Exemplary",
+  L0: "L0 Â· Unusable",
+  L1: "L1 Â· Minimal",
+  L2: "L2 Â· Adequate",
+  L3: "L3 Â· Strong",
+  L4: "L4 Â· Exemplary",
 };
 
 function QualityBadge({ level }: { level: QualityLevel }) {
@@ -141,7 +142,8 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
       data-testid={CARD_TEST_IDS.card}
       size="default"
       variant="hover"
-      className="group/card h-full"
+      className="card-glow group/card h-full"
+      
     >
       <MediaRegion item={item} />
 
@@ -162,9 +164,13 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
           <p data-testid={CARD_TEST_IDS.creator} className="text-sm text-muted-foreground">
             {item.attribution.creatorName}
           </p>
-          <p data-testid={CARD_TEST_IDS.role} className="font-mono text-xs text-muted-foreground">
+          <span
+            data-testid={CARD_TEST_IDS.role}
+            className="inline-flex w-fit items-center rounded-full px-2 py-0.5 font-mono text-[11px] font-medium"
+            style={roleChipStyle(item.creatorRole)}
+          >
             {item.creatorRole}
-          </p>
+          </span>
         </div>
 
         {item.stackTags.length > 0 ? (
