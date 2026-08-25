@@ -149,6 +149,23 @@ export const MediaUrlSchema = z
   .nullable();
 export type MediaUrl = z.infer<typeof MediaUrlSchema>;
 
+/**
+ * Public source repository URL for open-source portfolios.
+ * HTTPS-only, pinned to github.com owner/repo paths. Null means "not known
+ * to be open source" — only set after verification (never guessed).
+ */
+export const GithubUrlSchema = z
+  .string()
+  .url("githubUrl must be a valid URL")
+  .max(2048, "githubUrl must be at most 2048 characters")
+  .refine((value) => value.startsWith("https://"), "githubUrl must use HTTPS")
+  .refine(
+    (value) => /^https:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(value),
+    "githubUrl must point to a github.com repository",
+  )
+  .nullable();
+export type GithubUrl = z.infer<typeof GithubUrlSchema>;
+
 export const ConsentRecordSchema = z.object({
   tier: ConsentTierSchema,
   consentedBy: z.string().min(1, "consentedBy must not be empty"),
@@ -180,6 +197,9 @@ export const GalleryItemSummarySchema = z.object({
   // Safe projection - media is an HTTPS reference, tags are bounded strings;
   // never content, raw captures, or provenance evidence (ADR-0002/0003).
   mediaUrl: MediaUrlSchema,
+  // Open-source source repository, when verified (null otherwise).
+  // Optional at the boundary: legacy rows / older projections omit the key.
+  githubUrl: GithubUrlSchema.optional(),
   stackTags: z
     .array(z.string().trim().min(1, "stack tag must not be empty").max(64, "stack tag must be at most 64 characters"))
     .max(10, "at most 10 stack tags are allowed"),

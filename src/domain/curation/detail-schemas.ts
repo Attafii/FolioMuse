@@ -16,6 +16,7 @@ import { z } from "zod";
 import {
   AttributionSchema,
   MediaUrlSchema,
+  GithubUrlSchema,
   ProvenanceSummarySchema,
   QualityLevelSchema,
   ComplianceStatusSchema,
@@ -128,6 +129,9 @@ export const PortfolioDetailSchema = z
     // Bounded curated detail metadata (ADR-0007 D3), null/empty when uncurated.
     desktopMediaUrl: MediaUrlSchema,
     mobileMediaUrl: MediaUrlSchema,
+    // Verified open-source repository (null when not known open source).
+    // Optional at the boundary for legacy fixture/row compatibility.
+    githubUrl: GithubUrlSchema.optional(),
     pageIndex: z
       .array(z.string().trim().min(1).max(40))
       .max(24, "at most 24 page index labels are allowed"),

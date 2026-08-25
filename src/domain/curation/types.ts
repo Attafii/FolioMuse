@@ -75,6 +75,8 @@ export interface GalleryItemSummary {
   // Portfolio card system (T1): curated external screenshot + stack metadata.
   // Safe projection only - never content, raw captures, or provenance evidence.
   mediaUrl: string | null;
+  // Verified open-source source repository, when known (null otherwise).
+  githubUrl?: string | null;
   stackTags: string[];
   // ADR-0003 T6 safe projection: optional provenance completeness summary.
   // NEVER carries contentBlob/structureJSON/raw captures/claimant evidence.
@@ -112,6 +114,7 @@ export interface GalleryDetailRecord {
   stackTags: string[];
   desktopMediaUrl: string | null;
   mobileMediaUrl: string | null;
+  githubUrl: string | null;
   pageIndex: string[];
   sections: unknown;
   strengths: unknown;
