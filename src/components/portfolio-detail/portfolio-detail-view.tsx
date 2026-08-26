@@ -1,4 +1,4 @@
-// Attribution-safe portfolio detail view (plan portfolio-detail-page T10).
+﻿// Attribution-safe portfolio detail view (plan portfolio-detail-page T10).
 //
 // Server component rendering the strict PortfolioDetail DTO only - never raw
 // content, structure, captures, or private provenance. Design: media-led
@@ -10,13 +10,14 @@ import type { PortfolioDetail } from "@/domain/curation/detail-schemas";
 import { Badge } from "@/components/ui/badge";
 import { ClaimRemovalControls } from "@/components/portfolio-detail/claim-removal-controls";
 import { DetailOpenTelemetry } from "@/components/portfolio-detail/detail-open-telemetry";
+import { CardBookmark } from "@/components/card-bookmark";
 
 const QUALITY_LABELS: Record<string, string> = {
-  L0: "L0 · Unusable",
-  L1: "L1 · Minimal",
-  L2: "L2 · Adequate",
-  L3: "L3 · Strong",
-  L4: "L4 · Exemplary",
+  L0: "L0 Â· Unusable",
+  L1: "L1 Â· Minimal",
+  L2: "L2 Â· Adequate",
+  L3: "L3 Â· Strong",
+  L4: "L4 Â· Exemplary",
 };
 
 function hostnameOf(url: string): string {
@@ -43,7 +44,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
       {/* Fire-and-forget OPEN telemetry (renders nothing). */}
       <DetailOpenTelemetry itemId={detail.id} />
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <header className="flex flex-col gap-3">
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
           Portfolio reference
@@ -54,14 +55,18 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
         >
           {detail.title}
         </h1>
-        <p data-testid="detail-creator" className="text-base text-muted-foreground">
-          {detail.attribution.creatorName}
-          <span className="mx-2 text-border">|</span>
-          <span data-testid="detail-role">{detail.creatorRole}</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p data-testid="detail-creator" className="text-base text-muted-foreground">
+            {detail.attribution.creatorName}
+            <span className="mx-2 text-border">|</span>
+            <span data-testid="detail-role">{detail.creatorRole}</span>
+          </p>
+          {/* Like (local, SSR-safe store) â€” same control as gallery cards. */}
+          <CardBookmark itemId={detail.id} />
+        </div>
       </header>
 
-      {/* ── Live preview (media-led hero, real screenshot — no fake chrome) ── */}
+      {/* â”€â”€ Live preview (media-led hero, real screenshot â€” no fake chrome) â”€â”€ */}
       <section aria-labelledby="preview-heading" className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 id="preview-heading" className="font-display text-xl font-semibold tracking-tight">
@@ -77,7 +82,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
           ) : null}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
-          {/* Desktop capture — primary surface; links out for attribution (R3). */}
+          {/* Desktop capture â€” primary surface; links out for attribution (R3). */}
           <a
             href={detail.attribution.sourceUrl}
             target="_blank"
@@ -104,7 +109,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
               </div>
             )}
           </a>
-          {/* Mobile capture — compact companion (hidden when absent). */}
+          {/* Mobile capture â€” compact companion (hidden when absent). */}
           {detail.mobileMediaUrl ? (
             <a
               href={detail.attribution.sourceUrl}
@@ -128,11 +133,11 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
           ) : null}
         </div>
         <figcaption className="font-mono text-xs text-muted-foreground">
-          Desktop capture · {host}
+          Desktop capture Â· {host}
         </figcaption>
       </section>
 
-      {/* ── Metadata rail ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Metadata rail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
         <section
           aria-labelledby="metadata-heading"
@@ -238,7 +243,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
           ) : null}
         </section>
 
-        {/* ── Attribution / provenance rail ──────────────────────────────── */}
+        {/* â”€â”€ Attribution / provenance rail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section
           aria-labelledby="attribution-heading"
           data-testid="attribution-section"
@@ -278,7 +283,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
                     className="inline-flex items-center gap-1.5 font-mono text-sm text-primary underline-offset-4 transition-colors hover:underline"
                   >
                     Open source
-                    <span aria-hidden="true">↗</span>
+                    <span aria-hidden="true">â†—</span>
                   </a>
                 </dd>
               </div>
@@ -315,7 +320,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
         </section>
       </div>
 
-      {/* ── Similar examples ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Similar examples â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {detail.similarExamples.length > 0 ? (
         <section aria-labelledby="similar-heading" className="flex flex-col gap-4">
           <h2 id="similar-heading" className="font-display text-xl font-semibold tracking-tight">
@@ -343,7 +348,7 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
         </section>
       ) : null}
 
-      {/* ── Owner claim + removal controls ───────────────────────────────── */}
+      {/* â”€â”€ Owner claim + removal controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <ClaimRemovalControls itemId={detail.id} />
     </main>
   );

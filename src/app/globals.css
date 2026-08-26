@@ -274,6 +274,7 @@
   --role-embedded-bg: oklch(0.93 0.05 197);    --role-embedded-fg: oklch(0.42 0.13 197);
   --role-developer-bg: oklch(0.94 0.02 250);   --role-developer-fg: oklch(0.42 0.07 250);
   --role-generic-bg: oklch(0.95 0.01 250);     --role-generic-fg: oklch(0.42 0.04 250);
+  --like-bg: oklch(0.94 0.04 350);             --like-fg: oklch(0.45 0.18 350);           --like-border: oklch(0.80 0.10 350 / 0.6);
 }
 .dark {
   --role-designer-bg: oklch(0.30 0.07 350);    --role-designer-fg: oklch(0.88 0.06 350);
@@ -294,6 +295,7 @@
   --role-embedded-bg: oklch(0.29 0.07 197);    --role-embedded-fg: oklch(0.88 0.06 197);
   --role-developer-bg: oklch(0.30 0.03 250);   --role-developer-fg: oklch(0.89 0.03 250);
   --role-generic-bg: oklch(0.30 0.02 250);     --role-generic-fg: oklch(0.89 0.02 250);
+  --like-bg: oklch(0.32 0.08 350);             --like-fg: oklch(0.86 0.07 350);           --like-border: oklch(0.55 0.12 350 / 0.55);
 }
 
 /* ── Site-wide animated backdrop (devportfolio-style) ────────────────────

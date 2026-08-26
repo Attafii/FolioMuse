@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 
-import { Masthead } from "@/components/masthead";
 import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
 import { NewsletterForm } from "@/components/newsletter-form";
@@ -19,19 +18,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * FolioMuse homepage (Section 02 · Experience design, plan T7).
+ * FolioMuse homepage (Section 02 Â· Experience design, plan T7).
  * Gallery-first entry point.
  *
- * PAGE-LEVEL STRUCTURE (this file fixes the skeleton — section components
+ * PAGE-LEVEL STRUCTURE (this file fixes the skeleton â€” section components
  * land in T8-T15):
- *   - Skip link → #main-content
+ *   - Skip link â†’ #main-content
  *   - Single <h1> in the masthead; every other section uses <h2> via
  *     SectionHeader
  *   - Each <section> carries data-testid + aria-labelledby wired to its
  *     heading id
  *   - Empty-state copy per section (real tokens, no fake data)
  *
- * Server component — no client hooks here (interactivity lands with the
+ * Server component â€” no client hooks here (interactivity lands with the
  * section components in later tasks).
  */
 export default function HomePage() {
@@ -44,34 +43,34 @@ export default function HomePage() {
         Skip to content
       </a>
 
-      <Masthead />
+      
 
       <main
         id="main-content"
         className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-24 pt-12 sm:px-6 lg:px-8"
       >
-        {/* ── 1. Masthead / hero (T8: direct search hero) ───────────────── */}
+        {/* â”€â”€ 1. Masthead / hero (T8: direct search hero) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <SearchHero />
 
-        {/* ── 2. New & notable (T9: GalleryCard grid) ──────────────────── */}
+        {/* â”€â”€ 2. New & notable (T9: GalleryCard grid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <NewNotable />
 
-        {/* ── 3. Role explorer (T10) ───────────────────────────────────── */}
+        {/* â”€â”€ 3. Role explorer (T10) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <RoleExplorer />
 
-        {/* ── 4. Section explorer (T11) ────────────────────────────────── */}
+        {/* â”€â”€ 4. Section explorer (T11) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <SectionExplorer />
 
-        {/* ── 5. Editorial collections (T12) ───────────────────────────── */}
+        {/* â”€â”€ 5. Editorial collections (T12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <EditorialCollections />
 
-        {/* ── 6. MCP example (T13) ─────────────────────────────────────── */}
+        {/* â”€â”€ 6. MCP example (T13) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <McpExample />
 
-        {/* ── 7. Submission criteria (T14) ─────────────────────────────── */}
+        {/* â”€â”€ 7. Submission criteria (T14) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <SubmissionCriteria />
 
-        {/* ── 8. Newsletter (T15) ──────────────────────────────────────── */}
+        {/* â”€â”€ 8. Newsletter (T15) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section
           aria-labelledby="newsletter-heading"
           data-testid="newsletter"
@@ -86,7 +85,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* ── 9. Footer (T16) ────────────────────────────────────────────── */}
+      {/* â”€â”€ 9. Footer (T16) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Footer />
     </>
   );

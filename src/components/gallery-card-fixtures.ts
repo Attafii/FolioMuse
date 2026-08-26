@@ -30,8 +30,8 @@ export const CARD_TEST_IDS = {
 } as const;
 
 export const CARD_COPY = {
-  bookmarkAdd: "Bookmark portfolio",
-  bookmarkRemove: "Remove bookmark",
+  bookmarkAdd: "Like portfolio",
+  bookmarkRemove: "Remove like",
   previewOpen: "Preview portfolio media",
   previewClose: "Close media preview",
   sourceLabel: "View source",

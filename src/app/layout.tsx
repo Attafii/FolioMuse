@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { NavBar } from "@/components/ui/tubelight-navbar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/lib/theme";
 import { SiteBackdrop } from "@/components/site-backdrop";
 
@@ -58,8 +60,21 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <SiteBackdrop />
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <SiteBackdrop />
+          {/* Spacer so the fixed pill never overlaps content on desktop. */}
+          <div aria-hidden className="h-16 sm:h-14" />
+          {/* Nav items (with lucide icon components) live inside the client
+              module — functions cannot cross the server->client boundary. */}
+          <NavBar
+            rightSlot={
+              <span className="inline-flex">
+                <ThemeToggle />
+              </span>
+            }
+          />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

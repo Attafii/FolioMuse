@@ -1,4 +1,4 @@
-// GalleryCard shell tests (plan portfolio-card-system T6).
+﻿// GalleryCard shell tests (plan portfolio-card-system T6).
 // Uses react-dom/server renderToStaticMarkup - no jsdom/RTL dependency.
 // Consumes the shared fixtures/contracts from T4 so card and tests cannot drift.
 
@@ -120,7 +120,7 @@ describe("GalleryCard bookmark control (T8)", () => {
 
     expect(html).toContain(CARD_TEST_IDS.bookmark);
     expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain('aria-label="Bookmark portfolio"');
+    expect(html).toContain('aria-label="Like portfolio"');
   });
 
   it("keeps the bookmark button outside the source anchor (no nesting)", () => {

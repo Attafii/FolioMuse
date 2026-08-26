@@ -1,6 +1,6 @@
-// Server-side gallery query contract shared by the API routes and the MCP
+﻿// Server-side gallery query contract shared by the API routes and the MCP
 // tools. Pure functions only: parse/validate a public query, build the
-// Prisma `where` + `orderBy` for it. No IO here — persistence owns execution.
+// Prisma `where` + `orderBy` for it. No IO here â€” persistence owns execution.
 //
 // LCP fix: /api/gallery/summaries no longer returns the whole corpus; it
 // executes this query server-side with skip/take and returns one page plus
@@ -32,6 +32,8 @@ export const GalleryQuerySchema = z.object({
   stack: z.array(z.string().trim().min(1).max(64)).max(10).optional(),
   quality: z.array(z.enum(["L0", "L1", "L2", "L3", "L4"])).max(5).optional(),
   consent: z.array(z.enum(["DISPLAY", "PATTERN_DERIVE", "FULL"])).max(3).optional(),
+  /** Exact id lookups (Liked page — client bookmark ids, capped). */
+  ids: z.array(z.string().min(1).max(64)).max(60).optional(),
   /** Exact sourceUrl lookups (EditorialCollections cover resolution). */
   source: z.array(z.string().url().max(300)).max(60).optional(),
   sort: z.enum(SORT_KEYS).default("newest"),
@@ -51,6 +53,7 @@ export function parseGalleryQuery(params: URLSearchParams): GalleryQuery {
     quality: params.getAll("quality").filter(Boolean),
     consent: params.getAll("consent").filter(Boolean),
     source: params.getAll("source").filter(Boolean),
+    ids: params.getAll("id").filter(Boolean),
     sort: params.get("sort") ?? undefined,
     page: params.get("page") ?? undefined,
     pageSize: params.get("pageSize") ?? undefined,
@@ -92,6 +95,9 @@ export function buildGalleryWhere(query: GalleryQuery): Prisma.GalleryItemWhereI
   }
   if (query.consent?.length) {
     where.consent = { tier: { in: query.consent } };
+  }
+  if (query.ids?.length) {
+    where.id = { in: query.ids };
   }
   if (query.source?.length) {
     // AND-composed so it composes cleanly with the q OR-block above.

@@ -22,6 +22,8 @@ export interface GalleryQueryParams {
   quality?: QualityLevel[];
   consent?: ConsentTier[];
   source?: string[];
+  /** Exact item ids (Liked page reads client bookmark ids). */
+  ids?: string[];
   sort?: SortKey;
   page?: number;
   pageSize?: number;
@@ -59,6 +61,7 @@ function serialize(params: GalleryQueryParams): string {
   for (const s of params.style ?? []) sp.append("style", s);
   for (const s of params.stack ?? []) sp.append("stack", s);
   for (const src of params.source ?? []) sp.append("source", src);
+  for (const id of params.ids ?? []) sp.append("id", id);
   for (const q2 of params.quality ?? []) sp.append("quality", q2);
   for (const c of params.consent ?? []) sp.append("consent", c);
   if (params.sort && params.sort !== "newest") sp.set("sort", params.sort);

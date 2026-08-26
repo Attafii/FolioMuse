@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useSyncExternalStore } from "react";
 
@@ -44,4 +44,19 @@ export function useLocalBookmarks(): {
   const toggle = useCallback((itemId: string) => store.toggle(itemId), []);
 
   return { isBookmarked, toggle };
+}
+
+
+/**
+ * Liked-page helper: the full id set as a stable sorted array.
+ * Separate from useLocalBookmarks so cards keep the cheap boolean API while
+ * list views can react to the actual collection.
+ */
+export function useLocalBookmarkIds(): string[] {
+  const snapshot = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    () => SERVER_SNAPSHOT,
+  );
+  return [...snapshot].sort();
 }

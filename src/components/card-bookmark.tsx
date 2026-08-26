@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Bookmark } from "lucide-react";
+import { Heart } from "lucide-react";
 
 import { CARD_COPY, CARD_TEST_IDS } from "@/components/gallery-card-fixtures";
 import { useLocalBookmarks } from "@/hooks/use-local-bookmarks";
@@ -49,15 +49,15 @@ export function CardBookmark({ itemId }: { itemId: string }) {
       className={cn(
         "inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-2.5 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         bookmarked
-          ? "border-ring bg-primary text-primary-foreground"
+          ? "border-[var(--like-border)] bg-[var(--like-bg)] text-[var(--like-fg)]"
           : "border-border bg-card text-muted-foreground hover:border-ring/60 hover:text-foreground",
       )}
     >
-      <Bookmark
+      <Heart
         aria-hidden="true"
         className={cn("h-3.5 w-3.5", bookmarked && "fill-current")}
       />
-      <span>{bookmarked ? "Saved" : "Save"}</span>
+      <span>{bookmarked ? "Liked" : "Like"}</span>
     </button>
   );
 }
