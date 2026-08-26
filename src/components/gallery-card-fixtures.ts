@@ -1,4 +1,4 @@
-// Shared card contract constants + fixture builders (plan portfolio-card-system T4).
+﻿// Shared card contract constants + fixture builders (plan portfolio-card-system T4).
 //
 // Single source of truth for the card system's visual/interaction contract so
 // the card implementation (T6) and every consumer (T9) cannot drift:
@@ -9,7 +9,7 @@
 // Visible copy register: no em-dashes (PS5.1-safe), no fabricated numbers,
 // attribution always present (R3).
 
-export const CARD_MEDIA_ASPECT_RATIO = "16 / 9";
+export const CARD_MEDIA_ASPECT_RATIO = "16 / 10";
 
 export const CARD_TEST_IDS = {
   card: "gallery-card",

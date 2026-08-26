@@ -142,7 +142,7 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
       data-testid={CARD_TEST_IDS.card}
       size="default"
       variant="hover"
-      className="card-glow group/card h-full"
+      className="card-glow group/card h-full bg-card/75 backdrop-blur-sm transition-all duration-300 ease-[var(--ease-standard)] hover:-translate-y-1"
       
     >
       <MediaRegion item={item} />
@@ -214,8 +214,11 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
       </CardContent>
 
       <CardFooter className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <QualityBadge level={item.qualityLevel} />
+          <span className="truncate font-mono text-[11px] text-muted-foreground">
+            {new URL(item.attribution.sourceUrl).hostname.replace(/^www\./, "")}
+          </span>
           {isSample ? (
             <Badge
               variant="outline"

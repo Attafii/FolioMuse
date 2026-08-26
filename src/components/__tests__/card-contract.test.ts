@@ -1,6 +1,6 @@
-// Card contract tests (plan portfolio-card-system T4).
+﻿// Card contract tests (plan portfolio-card-system T4).
 // Validates the shared fixture/contract module BEFORE card implementation:
-// - CARD_MEDIA_ASPECT_RATIO is exactly 16 / 9.
+// - CARD_MEDIA_ASPECT_RATIO is exactly 16 / 10 (reference-design thumb).
 // - Every required test id is present and unique.
 // - Fixtures are concrete for every state (no undefined media).
 // - Visible copy register: no em-dashes, attribution present (R3).
@@ -20,8 +20,8 @@ import {
 } from "@/components/gallery-card-fixtures";
 
 describe("card media ratio contract", () => {
-  it("is exactly 16 / 9", () => {
-    expect(CARD_MEDIA_ASPECT_RATIO).toBe("16 / 9");
+  it("is exactly 16 / 10 (devportfolio-style thumb)", () => {
+    expect(CARD_MEDIA_ASPECT_RATIO).toBe("16 / 10");
   });
 });
 
