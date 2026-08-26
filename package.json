@@ -13,7 +13,8 @@
     "verify:provenance": "npx tsx scripts/verify-provenance-domain.ts",
     "verify:flywheel": "npx tsx scripts/verify-flywheel-domain.ts",
     "verify:policy": "npx tsx scripts/verify-product-policy.ts",
-    "mcp": "tsx src/mcp/server.ts"
+    "mcp": "tsx src/mcp/server.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
