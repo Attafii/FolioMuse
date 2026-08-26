@@ -158,6 +158,9 @@
   --chart-4: var(--ink-700);
   --chart-5: oklch(0.85 0.06 45);
   --radius: 0.625rem;
+  --grid-line: oklch(0.45 0.02 60 / 0.07);
+  --backdrop-canvas-opacity-light: 0.22;
+  --backdrop-canvas-opacity-dark: 0.85;
   --success: oklch(0.5 0.15 150);
   --success-foreground: oklch(0.985 0.002 80);
   --warning: oklch(0.52 0.12 65);
@@ -175,6 +178,7 @@
 }
 
 .dark {
+  --grid-line: oklch(0.97 0.006 80 / 0.055);
   /* Dark mode - semantic tokens (hierarchy parity with light, brand-faithful cobalt) */
   --background: oklch(0.16 0.01 60);
   --foreground: oklch(0.97 0.006 80);
@@ -292,28 +296,50 @@
   --role-generic-bg: oklch(0.30 0.02 250);     --role-generic-fg: oklch(0.89 0.02 250);
 }
 
-/* ── Aurora mesh backdrop (decorative, fixed, non-interactive) ─────────── */
-.gallery-mesh {
-  position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 140%;
+/* ── Site-wide animated backdrop (devportfolio-style) ────────────────────
+ * Fixed full-viewport layers: soft palette glows + a faint 48px grid, with
+ * an optional WebGL aurora canvas layered on top (site-backdrop.tsx).
+ * Sits under all content (z -10), pointer-events none, covers EVERY section.
+ */
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
   pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(42% 55% at 12% 18%, oklch(0.85 0.10 255 / 0.32) 0%, transparent 62%),
-    radial-gradient(36% 48% at 86% 8%,  oklch(0.87 0.09 197 / 0.26) 0%, transparent 60%),
-    radial-gradient(46% 52% at 74% 78%, oklch(0.90 0.09 78 / 0.22) 0%, transparent 64%),
-    radial-gradient(40% 45% at 30% 88%, oklch(0.88 0.08 350 / 0.16) 0%, transparent 62%);
-  filter: saturate(1.1);
+  overflow: hidden;
 }
-.dark .gallery-mesh {
+.site-backdrop-glow {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(42% 55% at 12% 18%, oklch(0.45 0.12 255 / 0.34) 0%, transparent 62%),
-    radial-gradient(36% 48% at 86% 8%,  oklch(0.42 0.10 197 / 0.28) 0%, transparent 60%),
-    radial-gradient(46% 52% at 74% 78%, oklch(0.44 0.10 78 / 0.22) 0%, transparent 64%),
-    radial-gradient(40% 45% at 30% 88%, oklch(0.42 0.10 350 / 0.18) 0%, transparent 62%);
+    radial-gradient(46% 60% at 14% 16%, oklch(0.85 0.10 255 / 0.30) 0%, transparent 62%),
+    radial-gradient(38% 50% at 88% 10%, oklch(0.87 0.09 197 / 0.24) 0%, transparent 60%),
+    radial-gradient(44% 54% at 76% 84%, oklch(0.90 0.09 78 / 0.18) 0%, transparent 62%),
+    radial-gradient(38% 46% at 24% 92%, oklch(0.88 0.08 350 / 0.14) 0%, transparent 60%);
 }
-
+.dark .site-backdrop-glow {
+  background:
+    radial-gradient(46% 60% at 14% 16%, oklch(0.45 0.12 255 / 0.30) 0%, transparent 62%),
+    radial-gradient(38% 50% at 88% 10%, oklch(0.42 0.10 197 / 0.24) 0%, transparent 60%),
+    radial-gradient(44% 54% at 76% 84%, oklch(0.44 0.10 78 / 0.18) 0%, transparent 62%),
+    radial-gradient(38% 46% at 24% 92%, oklch(0.42 0.10 350 / 0.16) 0%, transparent 60%);
+}
+.site-backdrop-grid {
+  position: absolute;
+  inset: -1px;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.site-backdrop-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: var(--backdrop-canvas-opacity-light);
+}
+.dark .site-backdrop-canvas { opacity: var(--backdrop-canvas-opacity-dark); }
 /* ── Gradient headline moment (single accent family, cobalt->sky) ─────── */
 .text-gradient {
   background-image: linear-gradient(

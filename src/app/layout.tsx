@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { ThemeProvider } from "@/lib/theme";
+import { SiteBackdrop } from "@/components/site-backdrop";
 
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
+        <SiteBackdrop />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

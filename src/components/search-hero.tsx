@@ -194,11 +194,11 @@ export function SearchHero() {
     <section
       aria-labelledby="masthead-heading"
       data-testid="masthead"
-      className="relative flex flex-col gap-8 overflow-hidden py-12 sm:py-16"
+      className="flex flex-col gap-8 py-16 sm:py-20 lg:py-24"
     >
-      {/* Aurora mesh — decorative only, hidden from AT, reduced-motion safe. */}
-      <div aria-hidden className="gallery-mesh" />
-      <div className="flex max-w-3xl flex-col gap-4">
+      {/* Site-wide backdrop (grid + shader aurora) is mounted in layout —
+          this hero just centers over it like the reference designs. */}
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
         <p className="font-mono text-sm text-muted-foreground">FolioMuse</p>
         <h1
           id="masthead-heading"
