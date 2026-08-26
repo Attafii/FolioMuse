@@ -1,4 +1,4 @@
-﻿// Read-only data access + pure ranking/aggregation helpers for MCP tools.
+// Read-only data access + pure ranking/aggregation helpers for MCP tools.
 //
 // Layering note (AGENTS.md Â§7): this module is part of the MCP transport
 // layer and stays THIN â€” reads go through the domain service where one

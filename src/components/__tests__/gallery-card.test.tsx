@@ -1,4 +1,4 @@
-﻿// GalleryCard shell tests (plan portfolio-card-system T6).
+// GalleryCard shell tests (plan portfolio-card-system T6).
 // Uses react-dom/server renderToStaticMarkup - no jsdom/RTL dependency.
 // Consumes the shared fixtures/contracts from T4 so card and tests cannot drift.
 

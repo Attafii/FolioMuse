@@ -1,4 +1,4 @@
-﻿// Card contract tests (plan portfolio-card-system T4).
+// Card contract tests (plan portfolio-card-system T4).
 // Validates the shared fixture/contract module BEFORE card implementation:
 // - CARD_MEDIA_ASPECT_RATIO is exactly 16 / 10 (reference-design thumb).
 // - Every required test id is present and unique.

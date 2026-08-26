@@ -1,4 +1,4 @@
-﻿// Accepted-detail service tests (plan portfolio-detail-page T5).
+// Accepted-detail service tests (plan portfolio-detail-page T5).
 // getAcceptedDetail() guards + provenance enrichment with in-memory fakes.
 // Proves: eligible records enrich safely; hidden records return null; no
 // private/raw fields ever leave the service; superseding attribution wins.

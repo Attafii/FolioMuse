@@ -1,4 +1,4 @@
-﻿// POST /api/gallery/items/[id]/claims + /removal-request route tests
+// POST /api/gallery/items/[id]/claims + /removal-request route tests
 // (plan portfolio-detail-page T8). Turnstile + rate-limit protected, opaque
 // safe responses, never echoes claimantContact/requestedBy/private state.
 

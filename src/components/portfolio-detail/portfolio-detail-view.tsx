@@ -1,4 +1,4 @@
-﻿// Attribution-safe portfolio detail view (plan portfolio-detail-page T10).
+// Attribution-safe portfolio detail view (plan portfolio-detail-page T10).
 //
 // Server component rendering the strict PortfolioDetail DTO only - never raw
 // content, structure, captures, or private provenance. Design: media-led

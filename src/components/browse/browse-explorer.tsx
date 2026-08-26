@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { BrowseEmpty, BrowseError, BrowseNoResults, BrowseSkeleton } from "@/components/browse/browse-states";
 import { FilterBar } from "@/components/browse/filter-bar";
+import { FacetGroups } from "@/components/browse/filter-controls";
 import { FilterSheet } from "@/components/browse/filter-sheet";
 import { ResultsGrid } from "@/components/browse/results-grid";
 import { ConsentTierSchema, QualityLevelSchema } from "@/domain/curation/schemas";
@@ -26,7 +27,7 @@ import {
  * /browse orchestrator (plan T5, LCP refactor).
  *
  * URL remains the single source of truth for filter state. The difference:
- * filtering/sorting/pagination now execute SERVER-SIDE — the explorer
+ * filtering/sorting/pagination now execute SERVER-SIDE â€” the explorer
  * serializes BrowseState into an API query and renders the returned page
  * (~30 KB), instead of downloading and filtering the entire corpus.
  *
@@ -71,17 +72,19 @@ export function BrowseExplorer() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasActiveFilters = countActiveFilterGroups(state) > 0;
 
-  // ─── URL sync ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ URL sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const updateUrl = useCallback(
     (next: BrowseState) => {
       const params = serializeBrowseState(next);
       const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      const base = pathname ?? "/browse";
+      const href = qs ? `${base}?${qs}` : base;
+      router.replace(href, { scroll: false });
     },
     [router, pathname],
   );
 
-  // ─── Search draft with 300ms debounce (plain setTimeout, no library) ────
+  // â”€â”€â”€ Search draft with 300ms debounce (plain setTimeout, no library) â”€â”€â”€â”€
   const [searchDraft, setSearchDraft] = useState(() => state.q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,7 +116,7 @@ export function BrowseExplorer() {
     [state, updateUrl],
   );
 
-  // ─── Filter/sort/page handlers (each resets page to 1 unless changing page) ──
+  // â”€â”€â”€ Filter/sort/page handlers (each resets page to 1 unless changing page) â”€â”€
   const handleToggleRole = useCallback(
     (value: string) =>
       updateUrl({ ...state, roles: toggleValue(state.roles, value), page: 1 }),
@@ -161,7 +164,7 @@ export function BrowseExplorer() {
     [updateUrl],
   );
 
-  // ─── Telemetry: IMPRESSION per visible item, keyed on state signature ───
+  // â”€â”€â”€ Telemetry: IMPRESSION per visible item, keyed on state signature â”€â”€â”€
   const signature = useMemo(() => {
     const sorted = (arr: string[]) => [...arr].sort().join(",");
     return [
@@ -189,7 +192,7 @@ export function BrowseExplorer() {
     }
   }, [items, signature, loading, error, impression, state.q]);
 
-  // ─── Render composition ────────────────────────────────────────────────
+  // â”€â”€â”€ Render composition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const controlsProps = {
     state,
     facets: facets ?? {
@@ -215,7 +218,7 @@ export function BrowseExplorer() {
     <section
       aria-labelledby="browse-heading"
       data-testid="browse-explorer"
-      className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-24 pt-12 sm:px-6 lg:px-8"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-24 pt-10 sm:px-6 lg:px-8"
     >
       <header className="flex flex-col gap-3">
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -245,11 +248,27 @@ export function BrowseExplorer() {
 
       {!loading && !error && !(total === 0 && !hasActiveFilters && state.q === "") ? (
         <>
-          <FilterBar {...controlsProps} />
-
           <div className="md:hidden">
             <FilterSheet {...controlsProps} />
           </div>
+
+          {/* Slim sticky search/sort bar — facets render below, in flow. */}
+          <FilterBar {...controlsProps} />
+
+          <FacetGroups
+            state={state}
+            facets={facets ?? {
+              roles: [],
+              styles: [],
+              stacks: [],
+              qualities: [],
+              consents: [],
+            }}
+            onToggleRole={handleToggleRole}
+            onToggleStyle={handleToggleStyle}
+            onToggleQuality={handleToggleQuality}
+            onToggleConsent={handleToggleConsent}
+          />
 
           {items.length === 0 ? (
             <BrowseNoResults onClearAll={handleClearAll} />
@@ -259,10 +278,11 @@ export function BrowseExplorer() {
               totalCount={total}
               page={state.page}
               totalPages={totalPages}
+              browseState={state}
+              pathname={pathname ?? "/browse"}
               onPageChange={handlePageChange}
             />
           )}
-          {facetsLoading ? null : null}
         </>
       ) : null}
     </section>

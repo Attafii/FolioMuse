@@ -1,4 +1,4 @@
-﻿// GET /api/gallery/items/[id] route tests (plan portfolio-detail-page T7).
+// GET /api/gallery/items/[id] route tests (plan portfolio-detail-page T7).
 // Factory-based: injects a loader returning PortfolioDetail | null so no DB is
 // required. Asserts 200 with strict safe DTO, 404 for hidden/unknown, 500
 // opaque on failure, and Cache-Control no-store.

@@ -1,21 +1,27 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { Ref } from "react";
 
 import type { GalleryFacet, GalleryFacets } from "@/hooks/use-gallery-query";
+import { roleChipStyle } from "@/lib/design/roles";
 import type { BrowseState, SortKey } from "@/lib/browse/browse-types";
 
 /**
- * Shared filter controls for the /browse experience (plan T6/T7).
+ * Shared filter controls for the /browse experience.
  *
- * ONE definition of the control surface, rendered by both the desktop
- * FilterBar and the mobile FilterSheet so behavior and copy never diverge.
- * Fully controlled: every value comes from props, every mutation is a
- * callback the explorer turns into a URL update.
+ * Split into two exports so the desktop layout can keep search/sort in a slim
+ * sticky bar while facet chips render in-flow (the old all-in-one sticky slab
+ * buried the entire card grid under hundreds of style chips).
  *
- * Layout is compact and stacked (search + sort row, then facet groups).
- * Copy register: short, functional, NO em-dashes.
+ * - FacetGroup caps visible chips (default 10) behind a "+N more" expander —
+ *   a 2k-item corpus produces hundreds of style tags and an unbounded wall of
+ *   pills pushed all content below the fold.
+ * - Role chips carry the profession tint system; active state overrides with
+ *   the primary treatment.
+ * - Fully controlled: every value from props, every mutation a callback.
+ * - Copy register: short, functional, NO em-dashes.
  */
 
 export interface FilterControlsProps {
@@ -42,167 +48,277 @@ interface FacetGroupProps {
   active: string[];
   testId: string;
   onToggle: (value: string) => void;
+  /** Visible chips before the expander (default 10). */
+  limit?: number;
+  /** Apply profession tints (role group only). */
+  tinted?: boolean;
 }
 
-function FacetGroup({ label, facets, active, testId, onToggle }: FacetGroupProps) {
+function FacetGroup({
+  label,
+  facets,
+  active,
+  testId,
+  onToggle,
+  limit = 10,
+  tinted = false,
+}: FacetGroupProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Active selections always stay visible, even beyond the cap.
+  const activeValues = facets.filter((f) =>
+    active.some((v) => v.toLowerCase() === f.value.toLowerCase()),
+  );
+  const inactive = facets.filter(
+    (f) => !active.some((v) => v.toLowerCase() === f.value.toLowerCase()),
+  );
+  const visibleInactive = expanded ? inactive : inactive.slice(0, limit);
+  const hidden = inactive.length - Math.min(inactive.length, limit);
+
   return (
     <div
       role="group"
       aria-label={`Filter by ${label.toLowerCase()}`}
       className="flex flex-wrap items-center gap-2"
     >
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="w-14 shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </span>
-      {facets.map((facet) => {
-        const isActive = active.some(
-          (v) => v.toLowerCase() === facet.value.toLowerCase(),
-        );
-        return (
-          <button
-            key={facet.value}
-            type="button"
-            data-testid={testId}
-            aria-pressed={isActive}
-            onClick={() => onToggle(facet.value)}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-4xl border px-3 text-xs font-medium transition-colors ${
-              isActive
-                ? "border-ring bg-primary text-primary-foreground"
-                : "border-border bg-card text-foreground hover:border-ring/60 hover:bg-muted"
-            }`}
-          >
-            {facet.value}
-            <span
-              className={`font-mono ${
-                isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-              }`}
-            >
-              {facet.count}
-            </span>
-          </button>
-        );
-      })}
+      {activeValues.map((facet) => (
+        <FacetChip
+          key={facet.value}
+          facet={facet}
+          testId={testId}
+          active
+          tinted={tinted}
+          onToggle={onToggle}
+        />
+      ))}
+      {visibleInactive.map((facet) => (
+        <FacetChip
+          key={facet.value}
+          facet={facet}
+          testId={testId}
+          active={false}
+          tinted={tinted}
+          onToggle={onToggle}
+        />
+      ))}
+      {hidden > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="inline-flex h-8 items-center rounded-4xl border border-dashed border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-ring/60 hover:text-foreground"
+        >
+          {expanded ? "Show less" : `+${hidden} more`}
+        </button>
+      ) : null}
     </div>
   );
 }
 
-export function FilterControls({
+function FacetChip({
+  facet,
+  testId,
+  active,
+  tinted,
+  onToggle,
+}: {
+  facet: GalleryFacet;
+  testId: string;
+  active: boolean;
+  tinted: boolean;
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      aria-pressed={active}
+      onClick={() => onToggle(facet.value)}
+      style={tinted && !active ? roleChipStyle(facet.value) : undefined}
+      className={`inline-flex h-8 items-center gap-1.5 rounded-4xl border px-3 text-xs font-medium transition-colors ${
+        active
+          ? "border-ring bg-primary text-primary-foreground"
+          : tinted
+            ? "border-transparent hover:brightness-95 dark:hover:brightness-110"
+            : "border-border bg-card text-foreground hover:border-ring/60 hover:bg-muted"
+      }`}
+    >
+      {facet.value}
+      <span
+        className={`font-mono ${
+          active ? "text-primary-foreground/80" : "text-muted-foreground"
+        }`}
+      >
+        {facet.count}
+      </span>
+    </button>
+  );
+}
+
+/** Search + count + sort + clear — the slim sticky row. */
+export function FilterSearchRow({
   state,
-  facets,
   resultCount,
   searchValue,
   hasActiveFilters,
   searchInputRef,
   onSearchChange,
-  onToggleRole,
-  onToggleStyle,
-  onToggleQuality,
-  onToggleConsent,
   onSortChange,
   onClearAll,
-}: FilterControlsProps) {
+}: Pick<
+  FilterControlsProps,
+  | "state"
+  | "resultCount"
+  | "searchValue"
+  | "hasActiveFilters"
+  | "searchInputRef"
+  | "onSearchChange"
+  | "onSortChange"
+  | "onClearAll"
+>) {
   return (
-    <div className="flex flex-col gap-3">
-      {/* Search + result count + clear all */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex w-full max-w-sm items-center gap-2 rounded-lg border border-input bg-card px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
-          <Search aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <label htmlFor="browse-search" className="sr-only">
-            Search portfolios
-          </label>
-          <input
-            ref={searchInputRef}
-            id="browse-search"
-            data-testid="browse-search"
-            type="search"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Search by role, tag, or title"
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-10 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-          />
-          {searchValue ? (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              aria-label="Clear search"
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <X aria-hidden className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-
-        <p className="font-mono text-sm text-muted-foreground">
-          {resultCount} {resultCount === 1 ? "portfolio" : "portfolios"}
-        </p>
-
-        {hasActiveFilters ? (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative flex min-w-56 flex-1 items-center gap-2 rounded-full border border-input bg-card/80 px-4 backdrop-blur focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
+        <Search aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <label htmlFor="browse-search" className="sr-only">
+          Search portfolios
+        </label>
+        <input
+          ref={searchInputRef}
+          id="browse-search"
+          data-testid="browse-search"
+          type="search"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="Search portfolios"
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-10 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+        />
+        {searchValue ? (
           <button
             type="button"
-            onClick={onClearAll}
-            data-testid="browse-clear-all"
-            className="rounded-md px-2 py-1 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            onClick={() => onSearchChange("")}
+            aria-label="Clear search"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            Clear filters
+            <X aria-hidden className="h-4 w-4" />
           </button>
         ) : null}
       </div>
 
-      {/* Facet chip groups (derived from unfiltered corpus) */}
-      <div className="flex flex-col gap-2">
-        <FacetGroup
-          label="Role"
-          facets={facets.roles}
-          active={state.roles}
-          testId="browse-role-chip"
-          onToggle={onToggleRole}
-        />
-        <FacetGroup
-          label="Style"
-          facets={facets.styles}
-          active={state.styles}
-          testId="browse-style-chip"
-          onToggle={onToggleStyle}
-        />
-        <FacetGroup
-          label="Quality"
-          facets={facets.qualities}
-          active={state.quality}
-          testId="browse-quality-chip"
-          onToggle={onToggleQuality}
-        />
-        <FacetGroup
-          label="Consent"
-          facets={facets.consents}
-          active={state.consent}
-          testId="browse-consent-chip"
-          onToggle={onToggleConsent}
-        />
-      </div>
+      <p
+        data-testid="browse-count-inline"
+        className="font-mono text-sm text-muted-foreground"
+      >
+        {resultCount.toLocaleString()} {resultCount === 1 ? "portfolio" : "portfolios"}
+      </p>
 
-      {/* Sort select */}
-      <div className="flex items-center gap-2">
-        <label
-          htmlFor="browse-sort"
-          className="text-sm text-muted-foreground"
+      <label htmlFor="browse-sort" className="sr-only">
+        Sort by
+      </label>
+      <select
+        id="browse-sort"
+        data-testid="browse-sort"
+        value={state.sort}
+        onChange={(e) => onSortChange(e.target.value as SortKey)}
+        className="h-10 rounded-full border border-border bg-card/80 px-4 text-sm text-foreground backdrop-blur transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-none"
+      >
+        <option value="newest">Newest</option>
+        <option value="title-asc">Title A-Z</option>
+        <option value="title-desc">Title Z-A</option>
+        <option value="quality">Quality</option>
+      </select>
+
+      {hasActiveFilters ? (
+        <button
+          type="button"
+          onClick={onClearAll}
+          data-testid="browse-clear-all"
+          className="rounded-full px-3 py-1.5 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
         >
-          Sort by
-        </label>
-        <select
-          id="browse-sort"
-          data-testid="browse-sort"
-          value={state.sort}
-          onChange={(e) => onSortChange(e.target.value as SortKey)}
-          className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-none"
-        >
-          <option value="newest">Newest</option>
-          <option value="title-asc">Title A-Z</option>
-          <option value="title-desc">Title Z-A</option>
-          <option value="quality">Quality</option>
-        </select>
-      </div>
+          Clear
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Facet chip groups — render in-flow, capped, role-tinted. */
+export function FacetGroups({
+  state,
+  facets,
+  onToggleRole,
+  onToggleStyle,
+  onToggleQuality,
+  onToggleConsent,
+}: Pick<
+  FilterControlsProps,
+  "state" | "facets" | "onToggleRole" | "onToggleStyle" | "onToggleQuality" | "onToggleConsent"
+>) {
+  return (
+    <div className="flex flex-col gap-3">
+      <FacetGroup
+        label="Role"
+        facets={facets.roles}
+        active={state.roles}
+        testId="browse-role-chip"
+        onToggle={onToggleRole}
+        limit={12}
+        tinted
+      />
+      <FacetGroup
+        label="Style"
+        facets={facets.styles}
+        active={state.styles}
+        testId="browse-style-chip"
+        onToggle={onToggleStyle}
+        limit={12}
+      />
+      <FacetGroup
+        label="Quality"
+        facets={facets.qualities}
+        active={state.quality}
+        testId="browse-quality-chip"
+        onToggle={onToggleQuality}
+        limit={6}
+      />
+      <FacetGroup
+        label="Consent"
+        facets={facets.consents}
+        active={state.consent}
+        testId="browse-consent-chip"
+        onToggle={onToggleConsent}
+        limit={6}
+      />
+    </div>
+  );
+}
+
+/** Full stack for surfaces that want everything in one block (mobile sheet). */
+export function FilterControls(props: FilterControlsProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      <FilterSearchRow
+        state={props.state}
+        resultCount={props.resultCount}
+        searchValue={props.searchValue}
+        hasActiveFilters={props.hasActiveFilters}
+        searchInputRef={props.searchInputRef}
+        onSearchChange={props.onSearchChange}
+        onSortChange={props.onSortChange}
+        onClearAll={props.onClearAll}
+      />
+      <FacetGroups
+        state={props.state}
+        facets={props.facets}
+        onToggleRole={props.onToggleRole}
+        onToggleStyle={props.onToggleStyle}
+        onToggleQuality={props.onToggleQuality}
+        onToggleConsent={props.onToggleConsent}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 
 import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
@@ -35,15 +35,7 @@ export const metadata: Metadata = {
  */
 export default function HomePage() {
   return (
-    <>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[var(--z-sticky)] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-      >
-        Skip to content
-      </a>
-
-      
+    <>      
 
       <main
         id="main-content"

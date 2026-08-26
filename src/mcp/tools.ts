@@ -1,4 +1,4 @@
-﻿// MCP tool definitions + handlers (plan T14, pillar 3).
+// MCP tool definitions + handlers (plan T14, pillar 3).
 //
 // Safe-projection contract (ADR-0001/0003 D9 â€” hard charter line):
 //   * NO tool returns full item content. Our schema does not even store

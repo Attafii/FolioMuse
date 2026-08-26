@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FilterExplorer } from "@/components/filter-explorer";
 

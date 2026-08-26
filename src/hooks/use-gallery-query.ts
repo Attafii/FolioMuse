@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -140,6 +140,14 @@ export function useGalleryQuery(params: GalleryQueryParams): PageState & {
     [key, qs],
   );
 
+  // Ensure stale state doesn't flash old page data: when key has no cache,
+  // show loading immediately instead of keeping previous page's items.
+  useEffect(() => {
+    if (!pageCache.has(key)) {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+    }
+  }, [key]);
+
   useEffect(() => {
     let cancelled = false;
     // Cache hits were already seeded by the lazy useState initializer; the
@@ -147,12 +155,16 @@ export function useGalleryQuery(params: GalleryQueryParams): PageState & {
     void load().then((fresh) => {
       if (!cancelled) setState(fresh);
     });
+    const listener = () => {
+      const cached = pageCache.get(key);
+      if (cached) setState(cached);
+    };
     const set = listeners.get(key) ?? new Set();
-    set.add(() => setState(pageCache.get(key)!));
+    set.add(listener);
     listeners.set(key, set);
     return () => {
       cancelled = true;
-      listeners.get(key)?.delete(() => undefined);
+      listeners.get(key)?.delete(listener);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- key fully identifies params
   }, [key]);

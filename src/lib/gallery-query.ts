@@ -1,4 +1,4 @@
-﻿// Server-side gallery query contract shared by the API routes and the MCP
+// Server-side gallery query contract shared by the API routes and the MCP
 // tools. Pure functions only: parse/validate a public query, build the
 // Prisma `where` + `orderBy` for it. No IO here â€” persistence owns execution.
 //

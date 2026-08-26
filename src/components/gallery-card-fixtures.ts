@@ -1,4 +1,4 @@
-﻿// Shared card contract constants + fixture builders (plan portfolio-card-system T4).
+// Shared card contract constants + fixture builders (plan portfolio-card-system T4).
 //
 // Single source of truth for the card system's visual/interaction contract so
 // the card implementation (T6) and every consumer (T9) cannot drift:

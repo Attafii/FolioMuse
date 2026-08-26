@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState } from "react"
 import { motion } from "framer-motion"
@@ -57,13 +57,13 @@ export function NavBar({ items = NAV_ITEMS, className, rightSlot }: NavBarProps)
   return (
     <div
       className={cn(
-        "fixed bottom-4 sm:top-4 left-1/2 -translate-x-1/2 z-[60]",
+        "fixed bottom-4 sm:top-4 sm:bottom-auto left-1/2 -translate-x-1/2 z-[60] pointer-events-none",
         className,
       )}
     >
       <nav
         aria-label="Primary"
-        className="flex items-center gap-1 bg-background/70 border border-border/80 backdrop-blur-xl py-1.5 px-1.5 rounded-full shadow-lg shadow-black/10 dark:shadow-black/40"
+        className="pointer-events-auto flex items-center gap-1 bg-background/70 border border-border/80 backdrop-blur-xl py-1.5 px-1.5 rounded-full shadow-lg shadow-black/10 dark:shadow-black/40"
       >
         {items.map((item) => {
           const Icon = item.icon

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -96,6 +96,10 @@ export function FilterExplorer({
 
   const groupFacets = facets?.[facetGroup] ?? [];
   const anyLoading = facetsLoading || loading;
+  const [expanded, setExpanded] = useState(false);
+  const COLLAPSED_LIMIT = 12;
+  const visibleFacets = expanded ? groupFacets : groupFacets.slice(0, COLLAPSED_LIMIT);
+  const hiddenCount = Math.max(0, groupFacets.length - COLLAPSED_LIMIT);
 
   return (
     <section aria-labelledby={id} data-testid={testid} className="flex flex-col gap-8">
@@ -132,7 +136,7 @@ export function FilterExplorer({
       {!anyLoading && groupFacets.length > 0 ? (
         <>
           <div role="group" aria-label={`Filter by ${title.toLowerCase()}`} className="flex flex-wrap gap-2">
-            {groupFacets.map((facet) => {
+            {visibleFacets.map((facet) => {
               const isActive = active === facet.value;
               return (
                 <button
@@ -162,6 +166,15 @@ export function FilterExplorer({
                 </button>
               );
             })}
+            {hiddenCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="inline-flex h-8 items-center rounded-4xl border border-dashed border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-ring/60 hover:text-foreground"
+              >
+                {expanded ? "Show less" : `+${hiddenCount} more`}
+              </button>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
