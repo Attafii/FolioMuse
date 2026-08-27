@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 import { BentoFeatures } from "@/components/bento-features";
 import { EditorialCollections } from "@/components/editorial-collections";
+import { FeaturedShowcase } from "@/components/featured-showcase";
+import { FinalCta } from "@/components/final-cta";
 import { Footer } from "@/components/footer";
 import { HeroSection } from "@/components/hero-section";
 import { HowItWorks } from "@/components/how-it-works";
@@ -11,6 +13,7 @@ import { NewsletterForm } from "@/components/newsletter-form";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
 import { SectionHeader } from "@/components/section-header";
+import { WhyPortfoliosMatter } from "@/components/why-portfolios-matter";
 
 export const metadata: Metadata = {
   title: "FolioMuse - Portfolio inspiration, without the cloning",
@@ -22,16 +25,19 @@ export const metadata: Metadata = {
  * FolioMuse homepage — redesigned with modern sections.
  *
  * PAGE-LEVEL STRUCTURE:
- *   - HeroSection: animated headline + CTAs + stats bar
- *   - SearchHero: direct search with autocomplete
- *   - NewNotable: top 6 quality-ranked portfolios
- *   - BentoFeatures: bento grid showing what FolioMuse offers
- *   - RoleExplorer: filter chips by profession
- *   - HowItWorks: 4-step process explanation
- *   - EditorialCollections: hand-picked portfolio sets
- *   - McpExample: agent conversation demo
- *   - NewsletterForm: email capture
- *   - Footer: enhanced with more links
+ *   1. HeroSection: animated headline + CTAs + stats bar
+ *   2. SearchHero: centered search with autocomplete
+ *   3. NewNotable: top 6 quality-ranked portfolios
+ *   4. WhyPortfoliosMatter: stats about portfolio importance
+ *   5. BentoFeatures: bento grid showing what FolioMuse offers
+ *   6. FeaturedShowcase: top 3 L3/L4 portfolios in spotlight
+ *   7. RoleExplorer: filter chips by profession
+ *   8. HowItWorks: 4-step process explanation
+ *   9. EditorialCollections: hand-picked portfolio sets
+ *   10. McpExample: agent conversation demo
+ *   11. NewsletterForm: email capture
+ *   12. FinalCta: call-to-action before footer
+ *   13. Footer: enhanced with more links
  *
  * Server component — no client hooks here (interactivity lands with the
  * section components).
@@ -46,28 +52,34 @@ export default function HomePage() {
         {/* ── 1. Hero (animated headline + CTAs + stats) ─────────────────── */}
         <HeroSection />
 
-        {/* ── 2. Search (direct search with autocomplete) ────────────────── */}
+        {/* ── 2. Search (centered search with autocomplete) ──────────────── */}
         <SearchHero />
 
         {/* ── 3. New & notable (top 6 quality-ranked portfolios) ─────────── */}
         <NewNotable />
 
-        {/* ── 4. Bento features (what FolioMuse offers) ──────────────────── */}
+        {/* ── 4. Why portfolios matter (stats & social proof) ────────────── */}
+        <WhyPortfoliosMatter />
+
+        {/* ── 5. Bento features (what FolioMuse offers) ──────────────────── */}
         <BentoFeatures />
 
-        {/* ── 5. Role explorer (filter by profession) ────────────────────── */}
+        {/* ── 6. Featured showcase (top L3/L4 portfolios) ────────────────── */}
+        <FeaturedShowcase />
+
+        {/* ── 7. Role explorer (filter by profession) ────────────────────── */}
         <RoleExplorer />
 
-        {/* ── 6. How it works (4-step process) ───────────────────────────── */}
+        {/* ── 8. How it works (4-step process) ───────────────────────────── */}
         <HowItWorks />
 
-        {/* ── 7. Editorial collections (hand-picked sets) ────────────────── */}
+        {/* ── 9. Editorial collections (hand-picked sets) ────────────────── */}
         <EditorialCollections />
 
-        {/* ── 8. MCP example (agent conversation demo) ───────────────────── */}
+        {/* ── 10. MCP example (agent conversation demo) ──────────────────── */}
         <McpExample />
 
-        {/* ── 9. Newsletter ──────────────────────────────────────────────── */}
+        {/* ── 11. Newsletter ─────────────────────────────────────────────── */}
         <section
           aria-labelledby="newsletter-heading"
           data-testid="newsletter"
@@ -80,9 +92,12 @@ export default function HomePage() {
           />
           <NewsletterForm />
         </section>
+
+        {/* ── 12. Final CTA ──────────────────────────────────────────────── */}
+        <FinalCta />
       </main>
 
-      {/* ── 10. Footer ──────────────────────────────────────────────────── */}
+      {/* ── 13. Footer ──────────────────────────────────────────────────── */}
       <Footer />
     </>
   );

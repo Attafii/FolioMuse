@@ -194,7 +194,7 @@ export function SearchHero() {
     <section
       aria-labelledby="masthead-heading"
       data-testid="masthead"
-      className="flex flex-col gap-8 py-16 sm:py-20 lg:py-24"
+      className="flex flex-col items-center gap-8 py-16 sm:py-20 lg:py-24"
     >
       {/* Site-wide backdrop (grid + shader aurora) is mounted in layout —
           this hero just centers over it like the reference designs. */}
@@ -230,7 +230,7 @@ export function SearchHero() {
       </div>
 
       {/* â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="relative flex w-full max-w-2xl flex-col gap-2">
+      <div className="relative flex w-full max-w-2xl flex-col items-center gap-2">
         <form
           role="search"
           onSubmit={(e) => {
