@@ -22,6 +22,33 @@ export const metadata: Metadata = {
   title: "FolioMuse",
   description:
     "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+  metadataBase: new URL("https://foliomuse.com"),
+  openGraph: {
+    title: "FolioMuse - Portfolio inspiration, without the cloning",
+    description:
+      "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+    url: "https://foliomuse.com",
+    siteName: "FolioMuse",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FolioMuse - Portfolio inspiration, without the cloning",
+    description:
+      "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 /**
