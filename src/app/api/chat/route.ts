@@ -87,24 +87,33 @@ function extractSearchQuery(message: string): {
     result.query = nameMatch[1];
   }
 
-  // Extract role
+  // Extract role - MUST match database values exactly
   const rolePatterns = [
-    { pattern: /design(?:er)?|ui\/ux|ux/i, role: "Product Designer" },
-    { pattern: /frontend|front-end|react|vue|angular/i, role: "Frontend Developer" },
-    { pattern: /backend|back-end|node|python|java/i, role: "Backend Developer" },
-    { pattern: /full.?stack/i, role: "Full-Stack Developer" },
-    { pattern: /mobile|ios|android|react native|flutter/i, role: "Mobile Developer" },
-    { pattern: /devops|infrastructure|cloud/i, role: "DevOps Engineer" },
-    { pattern: /ai|ml|machine learning|data scien/i, role: "AI/ML Engineer" },
-    { pattern: /data|analytics/i, role: "Data Engineer" },
-    { pattern: /game|unity|unreal/i, role: "Game Developer" },
-    { pattern: /security|cyber/i, role: "Security Engineer" },
+    { pattern: /design(?:er)?|ui\/ux|ux/i, role: "Designer" },
+    { pattern: /frontend|front-end|react|vue|angular/i, role: "Frontend" },
+    { pattern: /backend|back-end|node|python|java/i, role: "Backend" },
+    { pattern: /full.?stack/i, role: "Full Stack" },
+    { pattern: /mobile|ios|android|react native|flutter/i, role: "Mobile" },
+    { pattern: /devops|infrastructure|cloud/i, role: "DevOps" },
+    { pattern: /ai|ml|machine learning|data scien/i, role: "AI/ML" },
+    { pattern: /data|analytics/i, role: "Data" },
+    { pattern: /game|unity|unreal/i, role: "Game Dev" },
+    { pattern: /security|cyber/i, role: "Security" },
     { pattern: /photo/i, role: "Photographer" },
+    { pattern: /architect/i, role: "Architect" },
+    { pattern: /embedded/i, role: "Embedded" },
+    { pattern: /mechanical/i, role: "Mechanical Engineer" },
+    { pattern: /finance|fintech/i, role: "Finance" },
+    { pattern: /market/i, role: "Marketer" },
   ];
 
   for (const { pattern, role } of rolePatterns) {
     if (pattern.test(lower)) {
       result.role = role;
+      // If no name query extracted, use the role as query
+      if (!result.query) {
+        result.query = role;
+      }
       break;
     }
   }
@@ -146,7 +155,7 @@ function extractSearchQuery(message: string): {
 
 /**
  * Search for matching portfolios using the CurationService.
- * Uses text search (q parameter) to search across ALL portfolios.
+ * Uses role filter first, then text search, then top-rated fallback.
  */
 async function searchPortfolios(criteria: {
   query: string;
@@ -168,43 +177,43 @@ async function searchPortfolios(criteria: {
       rebuildQueue,
     );
 
-    // Build search params with text query
-    const params: Record<string, unknown> = {
-      q: criteria.query,
-      page: 1,
-      pageSize: 10, // Return up to 10 results
-      sort: "quality",
-    };
+    let result: { items: GalleryItemSummary[]; total: number } = { items: [], total: 0 };
 
+    // Strategy 1: If we have a role, search by role first (most specific)
     if (criteria.role) {
-      params.role = [criteria.role];
-    }
-    if (criteria.style) {
-      params.style = [criteria.style];
-    }
-    if (criteria.quality) {
-      params.quality = criteria.quality;
+      const roleParams: Record<string, unknown> = {
+        page: 1,
+        pageSize: 10,
+        sort: "quality",
+        role: [criteria.role],
+      };
+      if (criteria.style) {
+        roleParams.style = [criteria.style];
+      }
+      if (criteria.quality) {
+        roleParams.quality = criteria.quality;
+      }
+      result = await service.listAcceptedFiltered(roleParams as Parameters<typeof service.listAcceptedFiltered>[0]);
     }
 
-    let result = await service.listAcceptedFiltered(params as Parameters<typeof service.listAcceptedFiltered>[0]);
-
-    // If no results with text search, try without text query but with filters
-    if (result.items.length === 0 && (criteria.role || criteria.style)) {
-      const fallbackParams: Record<string, unknown> = {
+    // Strategy 2: If no role results, try text search
+    if (result.items.length === 0 && criteria.query) {
+      const textParams: Record<string, unknown> = {
+        q: criteria.query,
         page: 1,
         pageSize: 10,
         sort: "quality",
       };
-      if (criteria.role) {
-        fallbackParams.role = [criteria.role];
-      }
       if (criteria.style) {
-        fallbackParams.style = [criteria.style];
+        textParams.style = [criteria.style];
       }
-      result = await service.listAcceptedFiltered(fallbackParams as Parameters<typeof service.listAcceptedFiltered>[0]);
+      if (criteria.quality) {
+        textParams.quality = criteria.quality;
+      }
+      result = await service.listAcceptedFiltered(textParams as Parameters<typeof service.listAcceptedFiltered>[0]);
     }
 
-    // If still no results, get top-rated portfolios
+    // Strategy 3: If still no results, get top-rated portfolios
     if (result.items.length === 0) {
       const topParams: Record<string, unknown> = {
         page: 1,
