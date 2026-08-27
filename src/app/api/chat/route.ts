@@ -13,7 +13,7 @@ import type { GalleryItemSummary } from "@/domain/curation/types";
 /**
  * Chat API route for Foliobot with proper RAG.
  *
- * Always searches the database when user asks for portfolios.
+ * Searches ALL portfolios in the database using text search (q parameter).
  * Returns portfolio cards with images, star ratings, and links.
  */
 
@@ -29,7 +29,7 @@ const RequestSchema = z.object({
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /** System prompt for Foliobot. */
-const SYSTEM_PROMPT = `You are Foliobot, the AI assistant for FolioMuse — a portfolio inspiration gallery.
+const SYSTEM_PROMPT = `You are Foliobot, the AI assistant for FolioMuse — a portfolio inspiration gallery with 2000+ portfolios.
 
 CRITICAL RULES:
 - NEVER generate tool calls, function calls, or any special syntax
@@ -67,19 +67,25 @@ function qualityToStarString(level: string): string {
 }
 
 /**
- * Extract search criteria from user message.
- * Always returns criteria (never null) so we always search.
+ * Extract search query from user message.
+ * Extracts names, roles, styles, and builds a search query.
  */
-function extractSearchCriteria(message: string): {
+function extractSearchQuery(message: string): {
+  query: string;
   role?: string;
   style?: string;
   quality?: string[];
-  query: string;
 } {
   const lower = message.toLowerCase();
-  const criteria: { role?: string; style?: string; quality?: string[]; query: string } = {
-    query: message,
+  const result: { query: string; role?: string; style?: string; quality?: string[] } = {
+    query: "",
   };
+
+  // Extract potential name (look for capitalized words that might be names)
+  const nameMatch = message.match(/(?:by|from|find|show|search|look for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+  if (nameMatch) {
+    result.query = nameMatch[1];
+  }
 
   // Extract role
   const rolePatterns = [
@@ -98,7 +104,7 @@ function extractSearchCriteria(message: string): {
 
   for (const { pattern, role } of rolePatterns) {
     if (pattern.test(lower)) {
-      criteria.role = role;
+      result.role = role;
       break;
     }
   }
@@ -118,30 +124,35 @@ function extractSearchCriteria(message: string): {
 
   for (const { pattern, style } of stylePatterns) {
     if (pattern.test(lower)) {
-      criteria.style = style;
+      result.style = style;
       break;
     }
   }
 
   // Extract quality preference
   if (lower.includes("best") || lower.includes("top") || lower.includes("exemplary") || lower.includes("5 star")) {
-    criteria.quality = ["L4"];
+    result.quality = ["L4"];
   } else if (lower.includes("high quality") || lower.includes("strong") || lower.includes("4 star")) {
-    criteria.quality = ["L3", "L4"];
+    result.quality = ["L3", "L4"];
   }
 
-  return criteria;
+  // If no specific query extracted, use the full message as query
+  if (!result.query) {
+    result.query = message;
+  }
+
+  return result;
 }
 
 /**
  * Search for matching portfolios using the CurationService.
- * Always returns results - falls back to top-rated if no specific matches.
+ * Uses text search (q parameter) to search across ALL portfolios.
  */
 async function searchPortfolios(criteria: {
+  query: string;
   role?: string;
   style?: string;
   quality?: string[];
-  query: string;
 }): Promise<PortfolioMatch[]> {
   try {
     const galleryRepo = new GalleryRepositoryPrisma();
@@ -157,10 +168,11 @@ async function searchPortfolios(criteria: {
       rebuildQueue,
     );
 
-    // First try with specific filters
+    // Build search params with text query
     const params: Record<string, unknown> = {
+      q: criteria.query,
       page: 1,
-      pageSize: 5,
+      pageSize: 10, // Return up to 10 results
       sort: "quality",
     };
 
@@ -176,15 +188,18 @@ async function searchPortfolios(criteria: {
 
     let result = await service.listAcceptedFiltered(params as Parameters<typeof service.listAcceptedFiltered>[0]);
 
-    // If no results with filters, try without style filter (style tags might not match exactly)
-    if (result.items.length === 0 && criteria.style) {
+    // If no results with text search, try without text query but with filters
+    if (result.items.length === 0 && (criteria.role || criteria.style)) {
       const fallbackParams: Record<string, unknown> = {
         page: 1,
-        pageSize: 5,
+        pageSize: 10,
         sort: "quality",
       };
       if (criteria.role) {
         fallbackParams.role = [criteria.role];
+      }
+      if (criteria.style) {
+        fallbackParams.style = [criteria.style];
       }
       result = await service.listAcceptedFiltered(fallbackParams as Parameters<typeof service.listAcceptedFiltered>[0]);
     }
@@ -193,7 +208,7 @@ async function searchPortfolios(criteria: {
     if (result.items.length === 0) {
       const topParams: Record<string, unknown> = {
         page: 1,
-        pageSize: 5,
+        pageSize: 10,
         sort: "quality",
       };
       result = await service.listAcceptedFiltered(topParams as Parameters<typeof service.listAcceptedFiltered>[0]);
@@ -221,9 +236,18 @@ async function searchPortfolios(criteria: {
 
 function buildMatchReason(
   item: GalleryItemSummary,
-  criteria: { role?: string; style?: string; quality?: string[] },
+  criteria: { query: string; role?: string; style?: string; quality?: string[] },
 ): string {
   const reasons: string[] = [];
+
+  // Check if query matches title or creator name
+  const queryLower = criteria.query.toLowerCase();
+  if (item.title.toLowerCase().includes(queryLower)) {
+    reasons.push(`Title matches "${criteria.query}"`);
+  }
+  if (item.attribution.creatorName.toLowerCase().includes(queryLower)) {
+    reasons.push(`Creator name matches "${criteria.query}"`);
+  }
 
   if (criteria.role && item.creatorRole === criteria.role) {
     reasons.push(`Matches ${criteria.role} role`);
@@ -235,7 +259,7 @@ function buildMatchReason(
     reasons.push(`${item.qualityLevel} quality rating`);
   }
 
-  if (item.stackTags.length > 0) {
+  if (item.stackTags.length > 0 && reasons.length === 0) {
     reasons.push(`Uses ${item.stackTags.slice(0, 3).join(", ")}`);
   }
 
@@ -284,14 +308,14 @@ export async function POST(request: Request) {
     const { messages } = parsed.data;
     const lastUserMessage = messages[messages.length - 1];
 
-    // Always search for portfolios
-    const criteria = extractSearchCriteria(lastUserMessage.content);
+    // Extract search query and search portfolios
+    const criteria = extractSearchQuery(lastUserMessage.content);
     const portfolios = await searchPortfolios(criteria);
 
     // Build context for the LLM
     let contextPrefix = "";
     if (portfolios.length > 0) {
-      contextPrefix = `\n\nI found ${portfolios.length} matching portfolios in our gallery. Here are the results:\n\n`;
+      contextPrefix = `\n\nI found ${portfolios.length} matching portfolios in our gallery (searched across 2000+ portfolios). Here are the results:\n\n`;
       portfolios.forEach((p, i) => {
         contextPrefix += `${i + 1}. **${p.title}** by ${p.creatorName} (${p.creatorRole})\n`;
         contextPrefix += `   - Star Rating: ${p.starString} (${p.stars}/5)\n`;
@@ -303,7 +327,7 @@ export async function POST(request: Request) {
       });
       contextPrefix += `Present these portfolios to the user. Explain why each one matches their criteria. Mention the star ratings and key details. Do NOT generate any tool calls — just present the results naturally.`;
     } else {
-      contextPrefix = `\n\nNo specific portfolios found matching the criteria. Suggest the user try different search terms or browse the gallery at /browse.`;
+      contextPrefix = `\n\nNo portfolios found matching "${criteria.query}". Suggest the user try different search terms or browse the gallery at /browse.`;
     }
 
     // Call OpenRouter
