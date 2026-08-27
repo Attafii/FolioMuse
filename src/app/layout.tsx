@@ -5,6 +5,7 @@ import { NavBar } from "@/components/ui/tubelight-navbar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/lib/theme";
 import { SiteBackdrop } from "@/components/site-backdrop";
+import { Foliobot } from "@/components/foliobot";
 
 import "./globals.css";
 
@@ -101,6 +102,7 @@ export default function RootLayout({
             }
           />
           {children}
+          <Foliobot />
         </ThemeProvider>
       </body>
     </html>

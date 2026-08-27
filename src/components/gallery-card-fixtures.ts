@@ -27,6 +27,7 @@ export const CARD_TEST_IDS = {
   preview: "card-preview",
   previewPanel: "card-preview-panel",
   sample: "editorial-sample-badge",
+  detail: "card-detail-link",
 } as const;
 
 export const CARD_COPY = {
