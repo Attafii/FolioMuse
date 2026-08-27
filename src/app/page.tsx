@@ -16,9 +16,14 @@ import { SectionHeader } from "@/components/section-header";
 import { WhyPortfoliosMatter } from "@/components/why-portfolios-matter";
 
 export const metadata: Metadata = {
-  title: "FolioMuse - Portfolio inspiration, without the cloning",
+  title: "FolioMuse — Portfolio Inspiration Gallery | 2,000+ Real Portfolios",
   description:
-    "A gallery-first entry point: real portfolios, sharpened by AI feedback, assembled with an agent.",
+    "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project. Find portfolio examples by role, style, or tech stack.",
+  openGraph: {
+    title: "FolioMuse — Portfolio Inspiration Gallery | 2,000+ Real Portfolios",
+    description:
+      "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project.",
+  },
 };
 
 /**

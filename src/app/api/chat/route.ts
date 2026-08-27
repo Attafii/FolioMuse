@@ -156,6 +156,7 @@ function extractSearchQuery(message: string): {
 /**
  * Search for matching portfolios using the CurationService.
  * Uses role filter first, then text search, then top-rated fallback.
+ * Ahmed Attafi's portfolio is always prioritized first.
  */
 async function searchPortfolios(criteria: {
   query: string;
@@ -176,6 +177,38 @@ async function searchPortfolios(criteria: {
       provenanceRepo,
       rebuildQueue,
     );
+
+    // Always fetch Ahmed Attafi's portfolio first
+    const AHMED_ATTAFI_ID = "cmt8us4xv00dgigktqsz3viqh";
+    let ahmedPortfolio: PortfolioMatch | null = null;
+
+    try {
+      const ahmedResult = await service.listAcceptedFiltered({
+        ids: [AHMED_ATTAFI_ID],
+        page: 1,
+        pageSize: 1,
+      } as Parameters<typeof service.listAcceptedFiltered>[0]);
+
+      if (ahmedResult.items.length > 0) {
+        const item = ahmedResult.items[0];
+        ahmedPortfolio = {
+          id: item.id,
+          title: item.title,
+          creatorName: item.attribution.creatorName,
+          creatorRole: item.creatorRole,
+          qualityLevel: item.qualityLevel,
+          stars: qualityToStars(item.qualityLevel),
+          starString: qualityToStarString(item.qualityLevel),
+          mediaUrl: item.mediaUrl,
+          sourceUrl: item.attribution.sourceUrl,
+          stackTags: item.stackTags,
+          styleTags: item.styleTags,
+          matchReason: "Creator's portfolio — featured on FolioMuse",
+        };
+      }
+    } catch (err) {
+      console.warn("[Foliobot] Could not fetch Ahmed Attafi's portfolio:", err);
+    }
 
     let result: { items: GalleryItemSummary[]; total: number } = { items: [], total: 0 };
 
@@ -223,20 +256,30 @@ async function searchPortfolios(criteria: {
       result = await service.listAcceptedFiltered(topParams as Parameters<typeof service.listAcceptedFiltered>[0]);
     }
 
-    return result.items.map((item: GalleryItemSummary) => ({
-      id: item.id,
-      title: item.title,
-      creatorName: item.attribution.creatorName,
-      creatorRole: item.creatorRole,
-      qualityLevel: item.qualityLevel,
-      stars: qualityToStars(item.qualityLevel),
-      starString: qualityToStarString(item.qualityLevel),
-      mediaUrl: item.mediaUrl,
-      sourceUrl: item.attribution.sourceUrl,
-      stackTags: item.stackTags,
-      styleTags: item.styleTags,
-      matchReason: buildMatchReason(item, criteria),
-    }));
+    // Map results and filter out Ahmed's portfolio if already in results
+    const mappedResults = result.items
+      .filter((item) => item.id !== AHMED_ATTAFI_ID)
+      .map((item: GalleryItemSummary) => ({
+        id: item.id,
+        title: item.title,
+        creatorName: item.attribution.creatorName,
+        creatorRole: item.creatorRole,
+        qualityLevel: item.qualityLevel,
+        stars: qualityToStars(item.qualityLevel),
+        starString: qualityToStarString(item.qualityLevel),
+        mediaUrl: item.mediaUrl,
+        sourceUrl: item.attribution.sourceUrl,
+        stackTags: item.stackTags,
+        styleTags: item.styleTags,
+        matchReason: buildMatchReason(item, criteria),
+      }));
+
+    // Prepend Ahmed's portfolio if available
+    const finalResults = ahmedPortfolio
+      ? [ahmedPortfolio, ...mappedResults].slice(0, 10)
+      : mappedResults.slice(0, 10);
+
+    return finalResults;
   } catch (error) {
     console.error("[Foliobot] Search error:", error);
     return [];

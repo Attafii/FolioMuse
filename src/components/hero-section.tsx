@@ -75,7 +75,7 @@ export function HeroSection() {
         className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 font-mono text-xs tracking-wide text-muted-foreground backdrop-blur-sm"
       >
         <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-        Portfolio inspiration, without the cloning
+        2,000+ real portfolios, AI-rated and curated
       </motion.p>
 
       {/* Animated headline */}
@@ -104,8 +104,8 @@ export function HeroSection() {
         transition={{ duration: 0.5, delay: 0.8 }}
         className="max-w-[55ch] text-lg leading-relaxed text-muted-foreground sm:text-xl"
       >
-        Informed by real examples, sharpened by AI feedback, assembled with an
-        agent.
+        Stop staring at a blank page. Browse real portfolios from designers,
+        developers, and creators — then build yours with AI guidance.
       </motion.p>
 
       {/* CTAs */}

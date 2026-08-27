@@ -48,8 +48,8 @@ export function Footer() {
                 FolioMuse
               </p>
               <p className="max-w-[40ch] text-sm leading-relaxed text-muted-foreground">
-                Build a portfolio that is genuinely your own, informed by real
-                examples, sharpened by AI feedback, and assembled with an agent.
+                The portfolio inspiration gallery trusted by 2,000+ creators.
+                Real examples, AI-rated, ready to spark your next project.
               </p>
             </div>
             <Link
@@ -93,10 +93,6 @@ export function Footer() {
             cloning.
           </p>
           <div className="flex items-center gap-4">
-            <span className="font-mono text-xs text-muted-foreground">
-              Built with Next.js + Prisma
-            </span>
-            <span className="text-border" aria-hidden>·</span>
             <span className="font-mono text-xs text-muted-foreground">
               v0.1.0
             </span>

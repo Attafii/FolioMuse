@@ -20,14 +20,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FolioMuse",
+  title: "FolioMuse — Portfolio Inspiration Gallery | 2,000+ Real Portfolios",
   description:
-    "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+    "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project. Find portfolio examples by role, style, or tech stack.",
+  keywords: [
+    "portfolio inspiration",
+    "portfolio examples",
+    "designer portfolio",
+    "developer portfolio",
+    "web developer portfolio",
+    "UX portfolio",
+    "frontend portfolio",
+    "AI portfolio gallery",
+    "portfolio ideas",
+    "creative portfolio",
+    "best portfolios",
+    "portfolio design",
+    "FolioMuse",
+  ],
   metadataBase: new URL("https://foliomuse.com"),
   openGraph: {
-    title: "FolioMuse - Portfolio inspiration, without the cloning",
+    title: "FolioMuse — Portfolio Inspiration Gallery | 2,000+ Real Portfolios",
     description:
-      "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+      "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project.",
     url: "https://foliomuse.com",
     siteName: "FolioMuse",
     locale: "en_US",
@@ -35,9 +50,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FolioMuse - Portfolio inspiration, without the cloning",
+    title: "FolioMuse — Portfolio Inspiration Gallery | 2,000+ Real Portfolios",
     description:
-      "Build a portfolio that is genuinely your own - informed by real examples, sharpened by AI feedback, assembled with an AI agent.",
+      "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project.",
   },
   robots: {
     index: true,
@@ -49,6 +64,9 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
+  },
+  alternates: {
+    canonical: "https://foliomuse.com",
   },
 };
 
@@ -86,6 +104,39 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "FolioMuse",
+              url: "https://foliomuse.com",
+              description: "Browse 2,000+ real portfolios from designers, developers, and creators. AI-rated, curated, and ready to inspire your next project.",
+              potentialAction: {
+                "@type": "SearchAction",
+                target: "https://foliomuse.com/browse?q={search_term_string}",
+                "query-input": "required name=search_term_string",
+              },
+              sameAs: [
+                "https://github.com/Attafii/FolioMuse",
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "FolioMuse",
+              url: "https://foliomuse.com",
+              logo: "https://foliomuse.com/icon.svg",
+              description: "Portfolio inspiration gallery with 2,000+ AI-rated portfolios from designers, developers, and creators.",
+            }),
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>

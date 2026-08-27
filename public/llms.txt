@@ -1,0 +1,49 @@
+# FolioMuse — Portfolio Inspiration Gallery
+
+## What is FolioMuse?
+
+FolioMuse is a curated gallery of 2,000+ real portfolios from designers, developers, and creators. Each portfolio is AI-rated on a 5-star scale and organized by role, style, and tech stack. The platform helps professionals find portfolio inspiration without cloning — using real examples to inform original work.
+
+## Key Features
+
+- **2,000+ Real Portfolios**: Curated from actual designers, developers, and creators worldwide
+- **AI-Powered Ratings**: 5-star quality ratings (L0-L4) based on craft, originality, and execution
+- **Smart Filtering**: Browse by role (Designer, Frontend, Full Stack, AI/ML, DevOps, etc.), style (minimal, editorial, brutalist, dark-mode), or tech stack
+- **Foliobot AI Assistant**: Chat-based portfolio discovery using RAG-powered search across the entire gallery
+- **Editorial Collections**: Hand-picked portfolio sets for specific use cases
+- **Random Discovery**: Stumble upon unexpected inspiration with the random portfolio feature
+
+## Who is it for?
+
+- **Job seekers** building a portfolio and need inspiration from real examples
+- **Designers and developers** looking for design patterns and implementation ideas
+- **Hiring managers** wanting to see what quality portfolios look like
+- **Students** learning how to present their work professionally
+- **Agencies** researching portfolio trends and best practices
+
+## How it works
+
+1. **Browse**: Explore portfolios filtered by role, style, or quality rating
+2. **Discover**: Use Foliobot AI to find portfolios matching your specific needs
+3. **Inspire**: Study real examples to inform your own original portfolio
+4. **Build**: Use the portfolio builder (coming soon) to create your own
+
+## Quality Ratings
+
+- ★★★★★ (L4 Exemplary): Best-in-class, exceptional craft
+- ★★★★☆ (L3 Strong): High quality, well-executed
+- ★★★☆☆ (L2 Adequate): Meets standards, solid work
+- ★★☆☆☆ (L1 Minimal): Below average, limited value
+- ★☆☆☆☆ (L0 Unusable): Does not meet standards
+
+## Links
+
+- Gallery: https://foliomuse.com/browse
+- Random Portfolio: https://foliomuse.com/random
+- Documentation: https://foliomuse.com/docs
+- API Reference: https://foliomuse.com/docs#api
+
+## Contact
+
+- Website: https://foliomuse.com
+- GitHub: https://github.com/Attafii/FolioMuse

@@ -1,0 +1,63 @@
+
+> foliomuse@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.12 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.25.16.1:3000
+- Environments: .env
+✓ Ready in 1217ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+ GET /browse 200 in 993ms (next.js: 367ms, application-code: 626ms)
+ GET /api/gallery/summaries?pageSize=12 200 in 4.4s (next.js: 941ms, application-code: 3.5s)
+ POST /api/events 202 in 298ms (next.js: 113ms, application-code: 184ms)
+ POST /api/events 202 in 388ms (next.js: 195ms, application-code: 193ms)
+ POST /api/events 202 in 395ms (next.js: 164ms, application-code: 231ms)
+ POST /api/events 202 in 402ms (next.js: 245ms, application-code: 157ms)
+ POST /api/events 202 in 402ms (next.js: 278ms, application-code: 123ms)
+ GET /api/gallery/facets 200 in 5.2s (next.js: 721ms, application-code: 4.5s)
+ POST /api/events 202 in 166ms (next.js: 13ms, application-code: 153ms)
+ POST /api/events 202 in 204ms (next.js: 14ms, application-code: 189ms)
+ POST /api/events 202 in 208ms (next.js: 39ms, application-code: 170ms)
+ POST /api/events 202 in 211ms (next.js: 68ms, application-code: 142ms)
+ POST /api/events 202 in 213ms (next.js: 113ms, application-code: 100ms)
+ POST /api/events 202 in 216ms (next.js: 134ms, application-code: 82ms)
+ POST /api/events 202 in 94ms (next.js: 33ms, application-code: 62ms)
+ GET /browse?page=2 200 in 211ms (next.js: 23ms, application-code: 188ms)
+ GET /browse?page=2 200 in 123ms (next.js: 28ms, application-code: 95ms)
+ POST /api/events 202 in 235ms (next.js: 40ms, application-code: 194ms)
+ POST /api/events 202 in 240ms (next.js: 11ms, application-code: 229ms)
+ POST /api/events 202 in 355ms (next.js: 59ms, application-code: 296ms)
+ POST /api/events 202 in 370ms (next.js: 99ms, application-code: 270ms)
+ POST /api/events 202 in 250ms (next.js: 68ms, application-code: 183ms)
+ GET /api/gallery/summaries?page=2&pageSize=12 200 in 513ms (next.js: 145ms, application-code: 367ms)
+ POST /api/events 202 in 277ms (next.js: 22ms, application-code: 254ms)
+ POST /api/events 202 in 231ms (next.js: 60ms, application-code: 170ms)
+ POST /api/events 202 in 250ms (next.js: 23ms, application-code: 227ms)
+ POST /api/events 202 in 102ms (next.js: 25ms, application-code: 77ms)
+ POST /api/events 202 in 117ms (next.js: 9ms, application-code: 108ms)
+ POST /api/events 202 in 202ms (next.js: 38ms, application-code: 163ms)
+ POST /api/events 202 in 738ms (next.js: 173ms, application-code: 566ms)
+ POST /api/events 202 in 142ms (next.js: 38ms, application-code: 103ms)
+ POST /api/events 202 in 147ms (next.js: 12ms, application-code: 135ms)
+ POST /api/events 202 in 157ms (next.js: 17ms, application-code: 140ms)
+ POST /api/events 202 in 170ms (next.js: 46ms, application-code: 124ms)
+ POST /api/events 202 in 150ms (next.js: 36ms, application-code: 114ms)
+ POST /api/events 202 in 156ms (next.js: 21ms, application-code: 135ms)
+ POST /api/events 202 in 169ms (next.js: 26ms, application-code: 143ms)
+ POST /api/events 202 in 173ms (next.js: 59ms, application-code: 113ms)
+ POST /api/events 202 in 148ms (next.js: 8ms, application-code: 140ms)
+ POST /api/events 202 in 151ms (next.js: 37ms, application-code: 114ms)
+ POST /api/events 202 in 138ms (next.js: 29ms, application-code: 109ms)
+ POST /api/events 202 in 151ms (next.js: 58ms, application-code: 93ms)
+ GET /browse?style=minimal 200 in 299ms (next.js: 40ms, application-code: 259ms)
+ GET /api/gallery/summaries?style=minimal&pageSize=12 200 in 586ms (next.js: 17ms, application-code: 569ms)
+ GET /api/gallery/facets 200 in 1213ms (next.js: 121ms, application-code: 1092ms)
+ POST /api/events 202 in 536ms (next.js: 46ms, application-code: 490ms)
+ POST /api/events 202 in 542ms (next.js: 16ms, application-code: 526ms)
+ POST /api/events 202 in 577ms (next.js: 156ms, application-code: 420ms)
+ POST /api/events 202 in 256ms (next.js: 16ms, application-code: 239ms)
+ POST /api/events 202 in 601ms (next.js: 100ms, application-code: 502ms)
+ POST /api/events 202 in 788ms (next.js: 205ms, application-code: 582ms)
+[?25h

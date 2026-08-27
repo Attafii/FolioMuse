@@ -10,21 +10,26 @@ import { sectionVisibilityKey, useTelemetry } from "@/hooks/use-telemetry";
 /**
  * New & notable portfolios (plan T9).
  *
- * Client component â€” server-ranked top page via useGalleryQuery (ONE small
+ * Client component — server-ranked top page via useGalleryQuery (ONE small
  * request; the era of shipping the whole gallery to the browser is over).
  * Renders up to 6 accepted items, ordered by the API (qualityLevel DESC,
  * reviewedAt DESC).
  *
- * States: loading (skeleton cards, real loading) â†’ error (retry) â†’ data
+ * Ahmed Attafi's portfolio is pinned first as the creator's own portfolio.
+ *
+ * States: loading (skeleton cards, real loading) → error (retry) → data
  * (cards or honest empty state).
  *
- * Telemetry (plan T17): section_visible â†’ IMPRESSION per card on first
- * render with a deterministic idempotency key â€” exactly-once even under
+ * Telemetry (plan T17): section_visible → IMPRESSION per card on first
+ * render with a deterministic idempotency key — exactly-once even under
  * StrictMode double-mounts. No page-view events (ADR-0004 non-metrics).
  */
 
 const TOP_N = 6;
 const TELEMETRY_SOURCE = "new_notable";
+
+/** Ahmed Attafi's portfolio ID — pinned first on the landing page. */
+const AHMED_ATTAFI_ID = "cmt8us4xv00dgigktqsz3viqh";
 
 function SkeletonGrid() {
   return (
@@ -44,14 +49,20 @@ function SkeletonGrid() {
 }
 
 export function NewNotable() {
-  // Server-side top page: quality-ranked, 6 items â€” ~30 KB, not the corpus.
+  // Server-side top page: quality-ranked, 6 items — ~30 KB, not the corpus.
   const { items, loading, error, refetch } = useGalleryQuery({
     sort: "quality",
     pageSize: 6,
   });
   const { impression } = useTelemetry();
-  const cards = items.slice(0, TOP_N);
   const reported = useRef(false);
+
+  // Pin Ahmed Attafi's portfolio first, then fill with top-ranked items.
+  const ahmedCard = items.find((item) => item.id === AHMED_ATTAFI_ID);
+  const otherCards = items.filter((item) => item.id !== AHMED_ATTAFI_ID);
+  const cards = ahmedCard
+    ? [ahmedCard, ...otherCards].slice(0, TOP_N)
+    : items.slice(0, TOP_N);
 
   useEffect(() => {
     if (reported.current) return;
@@ -74,8 +85,8 @@ export function NewNotable() {
     >
       <SectionHeader
         id="new-notable-heading"
-        title="New and notable"
-        description="Freshly reviewed portfolios from the curation queue."
+        title="Handpicked for you"
+        description="Top-rated portfolios reviewed by our AI curation engine."
       />
 
       {loading ? <SkeletonGrid /> : null}
@@ -98,7 +109,7 @@ export function NewNotable() {
       {!loading && !error && cards.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-medium text-card-foreground">
-                  No portfolios yet - be the first to submit.
+            No portfolios yet — be the first to submit.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             The gallery fills after the first curation review.
