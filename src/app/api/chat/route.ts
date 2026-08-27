@@ -11,15 +11,10 @@ import type { ProvenanceRebuildQueue } from "@/domain/provenance/ports";
 import type { GalleryItemSummary } from "@/domain/curation/types";
 
 /**
- * Chat API route for Foliobot.
+ * Chat API route for Foliobot with proper RAG.
  *
- * Uses OpenRouter as the LLM provider. When the user describes portfolio
- * requirements, the route performs RAG-style search against the gallery
- * and returns matching portfolios inline in the response.
- *
- * Environment variables:
- * - OPENROUTER_API_KEY: Required. User's OpenRouter API key.
- * - OPENROUTER_MODEL: Optional. Defaults to "anthropic/claude-3.5-sonnet".
+ * Always searches the database when user asks for portfolios.
+ * Returns portfolio cards with images, star ratings, and links.
  */
 
 const MessageSchema = z.object({
@@ -41,7 +36,7 @@ CRITICAL RULES:
 - NEVER output <tool_call>, <function_call>, or similar XML/JSON tags
 - Respond ONLY in natural, conversational text
 - The system automatically searches for portfolios when users ask — you will receive the results in your context
-- Present portfolio recommendations as a clean numbered list with explanations
+- Present portfolio recommendations clearly with explanations
 
 Your role:
 1. Help users understand how FolioMuse works (curated gallery, AI ratings, star ratings 1-5)
@@ -55,53 +50,49 @@ Star ratings:
 - 2 stars: Below average, limited value (L1 Minimal)
 - 1 star: Does not meet standards (L0 Unusable)
 
-When presenting portfolios, use this format:
-**[Portfolio Title]** by Creator Name
-- Star Rating: ★★★★☆ (4/5)
-- Why it matches: [brief explanation]
-- [Link to view]
+When presenting portfolios, explain WHY each one matches their criteria. Mention the star rating and key details.
 
 If the user asks about something unrelated to portfolios or FolioMuse, gently redirect them.`;
 
+/** Map quality level to star rating. */
+function qualityToStars(level: string): number {
+  const map: Record<string, number> = { L0: 1, L1: 2, L2: 3, L3: 4, L4: 5 };
+  return map[level] ?? 3;
+}
+
+/** Map quality level to star display string. */
+function qualityToStarString(level: string): string {
+  const stars = qualityToStars(level);
+  return "★".repeat(stars) + "☆".repeat(5 - stars);
+}
+
 /**
- * Extract search criteria from user message using simple heuristics.
- * Returns null if no portfolio search intent detected.
+ * Extract search criteria from user message.
+ * Always returns criteria (never null) so we always search.
  */
 function extractSearchCriteria(message: string): {
   role?: string;
   style?: string;
   quality?: string[];
-  query?: string;
-} | null {
+  query: string;
+} {
   const lower = message.toLowerCase();
-
-  // Check if user is asking for portfolios
-  const searchIntent =
-    lower.includes("find") ||
-    lower.includes("show") ||
-    lower.includes("recommend") ||
-    lower.includes("looking for") ||
-    lower.includes("search") ||
-    lower.includes("portfolio") ||
-    lower.includes("example") ||
-    lower.includes("inspiration");
-
-  if (!searchIntent) return null;
-
-  const criteria: { role?: string; style?: string; quality?: string[]; query?: string } = {};
+  const criteria: { role?: string; style?: string; quality?: string[]; query: string } = {
+    query: message,
+  };
 
   // Extract role
   const rolePatterns = [
-    { pattern: /design(?:er)?/i, role: "Product Designer" },
-    { pattern: /frontend|front-end/i, role: "Frontend Developer" },
-    { pattern: /backend|back-end/i, role: "Backend Developer" },
+    { pattern: /design(?:er)?|ui\/ux|ux/i, role: "Product Designer" },
+    { pattern: /frontend|front-end|react|vue|angular/i, role: "Frontend Developer" },
+    { pattern: /backend|back-end|node|python|java/i, role: "Backend Developer" },
     { pattern: /full.?stack/i, role: "Full-Stack Developer" },
-    { pattern: /mobile/i, role: "Mobile Developer" },
-    { pattern: /devops/i, role: "DevOps Engineer" },
-    { pattern: /ai|ml|machine learning/i, role: "AI/ML Engineer" },
-    { pattern: /data/i, role: "Data Engineer" },
-    { pattern: /game/i, role: "Game Developer" },
-    { pattern: /security/i, role: "Security Engineer" },
+    { pattern: /mobile|ios|android|react native|flutter/i, role: "Mobile Developer" },
+    { pattern: /devops|infrastructure|cloud/i, role: "DevOps Engineer" },
+    { pattern: /ai|ml|machine learning|data scien/i, role: "AI/ML Engineer" },
+    { pattern: /data|analytics/i, role: "Data Engineer" },
+    { pattern: /game|unity|unreal/i, role: "Game Developer" },
+    { pattern: /security|cyber/i, role: "Security Engineer" },
     { pattern: /photo/i, role: "Photographer" },
   ];
 
@@ -117,11 +108,12 @@ function extractSearchCriteria(message: string): {
     { pattern: /minimal(?:ist)?/i, style: "minimal" },
     { pattern: /editorial/i, style: "editorial" },
     { pattern: /brutalist/i, style: "brutalist" },
-    { pattern: /dark/i, style: "dark-mode" },
-    { pattern: /colorful|vibrant/i, style: "colorful" },
-    { pattern: /clean/i, style: "clean" },
-    { pattern: /modern/i, style: "modern" },
-    { pattern: /creative/i, style: "creative" },
+    { pattern: /dark|moody|atmospheric/i, style: "dark-mode" },
+    { pattern: /colorful|vibrant|bright/i, style: "colorful" },
+    { pattern: /clean|simple/i, style: "clean" },
+    { pattern: /modern|contemporary/i, style: "modern" },
+    { pattern: /creative|artistic/i, style: "creative" },
+    { pattern: /neon|cyberpunk|futuristic/i, style: "dark-mode" },
   ];
 
   for (const { pattern, style } of stylePatterns) {
@@ -132,34 +124,26 @@ function extractSearchCriteria(message: string): {
   }
 
   // Extract quality preference
-  if (lower.includes("best") || lower.includes("top") || lower.includes("exemplary")) {
+  if (lower.includes("best") || lower.includes("top") || lower.includes("exemplary") || lower.includes("5 star")) {
     criteria.quality = ["L4"];
-  } else if (lower.includes("high quality") || lower.includes("strong")) {
+  } else if (lower.includes("high quality") || lower.includes("strong") || lower.includes("4 star")) {
     criteria.quality = ["L3", "L4"];
   }
 
-  criteria.query = message;
   return criteria;
-}
-
-/** Map quality level to star rating. */
-function qualityToStars(level: string): string {
-  const map: Record<string, number> = { L0: 1, L1: 2, L2: 3, L3: 4, L4: 5 };
-  const stars = map[level] ?? 3;
-  return "★".repeat(stars) + "☆".repeat(5 - stars) + ` (${stars}/5)`;
 }
 
 /**
  * Search for matching portfolios using the CurationService.
+ * Always returns results - falls back to top-rated if no specific matches.
  */
 async function searchPortfolios(criteria: {
   role?: string;
   style?: string;
   quality?: string[];
-  query?: string;
+  query: string;
 }): Promise<PortfolioMatch[]> {
   try {
-    // Module-level singleton pattern (same as other API routes)
     const galleryRepo = new GalleryRepositoryPrisma();
     const auditRepo = new AuditRepositoryPrisma();
     const provenanceRepo = new ProvenanceRepositoryPrisma();
@@ -173,10 +157,11 @@ async function searchPortfolios(criteria: {
       rebuildQueue,
     );
 
-    // Build filter params
+    // First try with specific filters
     const params: Record<string, unknown> = {
       page: 1,
       pageSize: 5,
+      sort: "quality",
     };
 
     if (criteria.role) {
@@ -189,18 +174,47 @@ async function searchPortfolios(criteria: {
       params.quality = criteria.quality;
     }
 
-    // Use the service to get filtered items
-    const result = await service.listAcceptedFiltered(params as Parameters<typeof service.listAcceptedFiltered>[0]);
+    let result = await service.listAcceptedFiltered(params as Parameters<typeof service.listAcceptedFiltered>[0]);
+
+    // If no results with filters, try without style filter (style tags might not match exactly)
+    if (result.items.length === 0 && criteria.style) {
+      const fallbackParams: Record<string, unknown> = {
+        page: 1,
+        pageSize: 5,
+        sort: "quality",
+      };
+      if (criteria.role) {
+        fallbackParams.role = [criteria.role];
+      }
+      result = await service.listAcceptedFiltered(fallbackParams as Parameters<typeof service.listAcceptedFiltered>[0]);
+    }
+
+    // If still no results, get top-rated portfolios
+    if (result.items.length === 0) {
+      const topParams: Record<string, unknown> = {
+        page: 1,
+        pageSize: 5,
+        sort: "quality",
+      };
+      result = await service.listAcceptedFiltered(topParams as Parameters<typeof service.listAcceptedFiltered>[0]);
+    }
 
     return result.items.map((item: GalleryItemSummary) => ({
       id: item.id,
       title: item.title,
       creatorName: item.attribution.creatorName,
+      creatorRole: item.creatorRole,
       qualityLevel: item.qualityLevel,
       stars: qualityToStars(item.qualityLevel),
+      starString: qualityToStarString(item.qualityLevel),
+      mediaUrl: item.mediaUrl,
+      sourceUrl: item.attribution.sourceUrl,
+      stackTags: item.stackTags,
+      styleTags: item.styleTags,
       matchReason: buildMatchReason(item, criteria),
     }));
-  } catch {
+  } catch (error) {
+    console.error("[Foliobot] Search error:", error);
     return [];
   }
 }
@@ -214,7 +228,7 @@ function buildMatchReason(
   if (criteria.role && item.creatorRole === criteria.role) {
     reasons.push(`Matches ${criteria.role} role`);
   }
-  if (criteria.style && item.styleTags.includes(criteria.style)) {
+  if (criteria.style && item.styleTags.some(s => s.toLowerCase().includes(criteria.style!.toLowerCase()))) {
     reasons.push(`Has ${criteria.style} style`);
   }
   if (criteria.quality?.includes(item.qualityLevel)) {
@@ -225,15 +239,21 @@ function buildMatchReason(
     reasons.push(`Uses ${item.stackTags.slice(0, 3).join(", ")}`);
   }
 
-  return reasons.length > 0 ? reasons.join(" · ") : "Matches your search criteria";
+  return reasons.length > 0 ? reasons.join(" · ") : "Top-rated portfolio";
 }
 
 interface PortfolioMatch {
   id: string;
   title: string;
   creatorName: string;
+  creatorRole: string;
   qualityLevel: string;
-  stars: string;
+  stars: number;
+  starString: string;
+  mediaUrl: string | null;
+  sourceUrl: string;
+  stackTags: string[];
+  styleTags: string[];
   matchReason: string;
 }
 
@@ -264,25 +284,26 @@ export async function POST(request: Request) {
     const { messages } = parsed.data;
     const lastUserMessage = messages[messages.length - 1];
 
-    // Check if we should search for portfolios
+    // Always search for portfolios
     const criteria = extractSearchCriteria(lastUserMessage.content);
-    let portfolios: PortfolioMatch[] = [];
-
-    if (criteria) {
-      portfolios = await searchPortfolios(criteria);
-    }
+    const portfolios = await searchPortfolios(criteria);
 
     // Build context for the LLM
     let contextPrefix = "";
     if (portfolios.length > 0) {
       contextPrefix = `\n\nI found ${portfolios.length} matching portfolios in our gallery. Here are the results:\n\n`;
       portfolios.forEach((p, i) => {
-        contextPrefix += `${i + 1}. **${p.title}** by ${p.creatorName}\n`;
-        contextPrefix += `   - Star Rating: ${p.stars}\n`;
+        contextPrefix += `${i + 1}. **${p.title}** by ${p.creatorName} (${p.creatorRole})\n`;
+        contextPrefix += `   - Star Rating: ${p.starString} (${p.stars}/5)\n`;
         contextPrefix += `   - Why it matches: ${p.matchReason}\n`;
+        if (p.stackTags.length > 0) {
+          contextPrefix += `   - Tech Stack: ${p.stackTags.slice(0, 4).join(", ")}\n`;
+        }
         contextPrefix += `   - View: /gallery/${p.id}\n\n`;
       });
-      contextPrefix += `Present these portfolios to the user in a clean, readable format. Explain why each one matches their criteria. Do NOT generate any tool calls or special syntax — just present the results naturally.`;
+      contextPrefix += `Present these portfolios to the user. Explain why each one matches their criteria. Mention the star ratings and key details. Do NOT generate any tool calls — just present the results naturally.`;
+    } else {
+      contextPrefix = `\n\nNo specific portfolios found matching the criteria. Suggest the user try different search terms or browse the gallery at /browse.`;
     }
 
     // Call OpenRouter

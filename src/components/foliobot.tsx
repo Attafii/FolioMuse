@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, X, Bot, User, Loader2, ExternalLink } from "lucide-react";
+import { Send, X, Bot, User, Loader2, ExternalLink, Star, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * Features:
  * - Chat with AI assistant powered by OpenRouter
  * - RAG-based portfolio search when user describes requirements
- * - Suggested portfolio cards inline in chat
+ * - Portfolio cards with images, star ratings, and links
  * - Keyboard accessible, respects prefers-reduced-motion
  */
 
@@ -30,7 +30,14 @@ interface PortfolioMatch {
   id: string;
   title: string;
   creatorName: string;
+  creatorRole: string;
   qualityLevel: string;
+  stars: number;
+  starString: string;
+  mediaUrl: string | null;
+  sourceUrl: string;
+  stackTags: string[];
+  styleTags: string[];
   matchReason: string;
 }
 
@@ -38,6 +45,7 @@ const SUGGESTED_QUESTIONS = [
   "What is FolioMuse?",
   "Find me a minimal React portfolio",
   "Show me design portfolios with dark themes",
+  "Show me the best portfolios",
   "How does the AI rating work?",
 ];
 
@@ -146,7 +154,7 @@ export function Foliobot() {
         {isOpen ? (
           <X className="size-6" />
         ) : (
-          <Bot className="size-6" />
+          <MessageCircle className="size-6" />
         )}
       </button>
 
@@ -155,7 +163,7 @@ export function Foliobot() {
         <div
           role="dialog"
           aria-label="Foliobot chat assistant"
-          className="fixed bottom-24 right-6 z-[var(--z-modal)] flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl"
+          className="fixed bottom-24 right-6 z-[var(--z-modal)] flex h-[600px] w-[420px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl"
         >
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-border/60 bg-muted/50 px-4 py-3">
@@ -224,35 +232,93 @@ export function Foliobot() {
                     )}
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-4 py-2.5",
+                        "max-w-[85%] rounded-2xl px-4 py-2.5",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted",
                       )}
                     >
-                      <p className="text-sm leading-relaxed">{message.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
 
-                      {/* Portfolio matches */}
+                      {/* Portfolio cards */}
                       {message.portfolios && message.portfolios.length > 0 && (
-                        <div className="mt-3 flex flex-col gap-2">
+                        <div className="mt-3 flex flex-col gap-3">
                           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Recommended portfolios
+                            Recommended portfolios ({message.portfolios.length})
                           </p>
                           {message.portfolios.map((portfolio) => (
                             <a
                               key={portfolio.id}
                               href={`/gallery/${portfolio.id}`}
-                              className="flex items-start gap-2 rounded-lg border border-border/40 bg-background/50 p-2.5 transition-colors hover:bg-background"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-all hover:border-primary/50 hover:shadow-md"
                             >
-                              <ExternalLink className="mt-0.5 size-3 shrink-0 text-primary" />
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-semibold">
-                                  {portfolio.title}
-                                </p>
-                                <p className="truncate font-mono text-[10px] text-muted-foreground">
-                                  {portfolio.creatorName} · {portfolio.qualityLevel}
-                                </p>
-                                <p className="mt-1 text-[10px] text-muted-foreground">
+                              {/* Portfolio image */}
+                              {portfolio.mediaUrl && (
+                                <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                                  <img
+                                    src={portfolio.mediaUrl}
+                                    alt={portfolio.title}
+                                    loading="lazy"
+                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Portfolio info */}
+                              <div className="flex flex-col gap-2 p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="truncate font-display text-sm font-semibold tracking-tight">
+                                      {portfolio.title}
+                                    </h4>
+                                    <p className="truncate font-mono text-[11px] text-muted-foreground">
+                                      {portfolio.creatorName} · {portfolio.creatorRole}
+                                    </p>
+                                  </div>
+                                  <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+                                </div>
+
+                                {/* Star rating */}
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-0.5">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={cn(
+                                          "size-3",
+                                          i < portfolio.stars
+                                            ? "fill-amber-400 text-amber-400"
+                                            : "fill-transparent text-muted-foreground/30"
+                                        )}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="font-mono text-[10px] text-muted-foreground">
+                                    {portfolio.stars}/5
+                                  </span>
+                                </div>
+
+                                {/* Stack tags */}
+                                {portfolio.stackTags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {portfolio.stackTags.slice(0, 3).map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Match reason */}
+                                <p className="text-[11px] text-muted-foreground">
                                   {portfolio.matchReason}
                                 </p>
                               </div>
@@ -274,7 +340,10 @@ export function Foliobot() {
                       <Bot className="size-3.5 text-primary" />
                     </div>
                     <div className="rounded-2xl bg-muted px-4 py-3">
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Searching portfolios...</span>
+                      </div>
                     </div>
                   </div>
                 )}
