@@ -68,15 +68,13 @@ export function FeaturedShowcase() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
-        className="grid grid-cols-1 gap-6 lg:grid-cols-3"
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2"
       >
-        {featured.map((item, index) => (
+        {featured.map((item) => (
           <motion.div
             key={item.id}
             variants={itemVariants}
-            className={`spotlight-card group flex flex-col overflow-hidden ${
-              index === 0 ? "lg:col-span-2 lg:row-span-2" : ""
-            }`}
+            className="spotlight-card group flex flex-col overflow-hidden"
           >
             <div className="spotlight-inner flex flex-1 flex-col">
               {/* Media */}
@@ -92,15 +90,11 @@ export function FeaturedShowcase() {
                       src={item.mediaUrl}
                       alt={`${item.title} by ${item.attribution.creatorName}`}
                       loading="lazy"
-                      className={`w-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                        index === 0 ? "aspect-[16/9]" : "aspect-[16/10]"
-                      }`}
+                      className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
                     <div
-                      className={`flex items-center justify-center bg-muted ${
-                        index === 0 ? "aspect-[16/9]" : "aspect-[16/10]"
-                      }`}
+                      className="flex aspect-[16/10] items-center justify-center bg-muted"
                       style={roleChipStyle(item.creatorRole)}
                     >
                       <span className="font-display text-4xl font-bold opacity-30">

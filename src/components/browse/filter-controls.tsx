@@ -229,7 +229,7 @@ export function FilterSearchRow({
         <option value="newest">Newest</option>
         <option value="title-asc">Title A-Z</option>
         <option value="title-desc">Title Z-A</option>
-        <option value="quality">Quality</option>
+        <option value="quality">Stars</option>
       </select>
 
       {hasActiveFilters ? (
@@ -278,7 +278,7 @@ export function FacetGroups({
         limit={12}
       />
       <FacetGroup
-        label="Quality"
+        label="Stars"
         facets={facets.qualities}
         active={state.quality}
         testId="browse-quality-chip"

@@ -36,19 +36,30 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 /** System prompt for Foliobot. */
 const SYSTEM_PROMPT = `You are Foliobot, the AI assistant for FolioMuse — a portfolio inspiration gallery.
 
+CRITICAL RULES:
+- NEVER generate tool calls, function calls, or any special syntax
+- NEVER output <tool_call>, <function_call>, or similar XML/JSON tags
+- Respond ONLY in natural, conversational text
+- The system automatically searches for portfolios when users ask — you will receive the results in your context
+- Present portfolio recommendations as a clean numbered list with explanations
+
 Your role:
-1. Help users understand how FolioMuse works (curated gallery, AI ratings, quality levels L0-L4)
-2. When users describe what kind of portfolio they're looking for, extract search criteria and recommend matching portfolios
+1. Help users understand how FolioMuse works (curated gallery, AI ratings, star ratings 1-5)
+2. When you receive portfolio search results in your context, present them clearly to the user
 3. Be helpful, concise, and friendly
 
-Quality levels:
-- L4 Exemplary: Best-in-class, exceptional craft
-- L3 Strong: High quality, well-executed
-- L2 Adequate: Meets standards, solid work
-- L1 Minimal: Below average, limited value
-- L0 Unusable: Does not meet standards
+Star ratings:
+- 5 stars: Best-in-class, exceptional craft (L4 Exemplary)
+- 4 stars: High quality, well-executed (L3 Strong)
+- 3 stars: Meets standards, solid work (L2 Adequate)
+- 2 stars: Below average, limited value (L1 Minimal)
+- 1 star: Does not meet standards (L0 Unusable)
 
-When recommending portfolios, explain WHY each one matches their criteria.
+When presenting portfolios, use this format:
+**[Portfolio Title]** by Creator Name
+- Star Rating: ★★★★☆ (4/5)
+- Why it matches: [brief explanation]
+- [Link to view]
 
 If the user asks about something unrelated to portfolios or FolioMuse, gently redirect them.`;
 
@@ -131,6 +142,13 @@ function extractSearchCriteria(message: string): {
   return criteria;
 }
 
+/** Map quality level to star rating. */
+function qualityToStars(level: string): string {
+  const map: Record<string, number> = { L0: 1, L1: 2, L2: 3, L3: 4, L4: 5 };
+  const stars = map[level] ?? 3;
+  return "★".repeat(stars) + "☆".repeat(5 - stars) + ` (${stars}/5)`;
+}
+
 /**
  * Search for matching portfolios using the CurationService.
  */
@@ -179,6 +197,7 @@ async function searchPortfolios(criteria: {
       title: item.title,
       creatorName: item.attribution.creatorName,
       qualityLevel: item.qualityLevel,
+      stars: qualityToStars(item.qualityLevel),
       matchReason: buildMatchReason(item, criteria),
     }));
   } catch {
@@ -214,6 +233,7 @@ interface PortfolioMatch {
   title: string;
   creatorName: string;
   qualityLevel: string;
+  stars: string;
   matchReason: string;
 }
 
@@ -255,11 +275,14 @@ export async function POST(request: Request) {
     // Build context for the LLM
     let contextPrefix = "";
     if (portfolios.length > 0) {
-      contextPrefix = `\n\nI found ${portfolios.length} matching portfolios in our gallery:\n`;
+      contextPrefix = `\n\nI found ${portfolios.length} matching portfolios in our gallery. Here are the results:\n\n`;
       portfolios.forEach((p, i) => {
-        contextPrefix += `${i + 1}. "${p.title}" by ${p.creatorName} (${p.qualityLevel}) - ${p.matchReason}\n`;
+        contextPrefix += `${i + 1}. **${p.title}** by ${p.creatorName}\n`;
+        contextPrefix += `   - Star Rating: ${p.stars}\n`;
+        contextPrefix += `   - Why it matches: ${p.matchReason}\n`;
+        contextPrefix += `   - View: /gallery/${p.id}\n\n`;
       });
-      contextPrefix += "\nPlease present these to the user and explain why they match their criteria.";
+      contextPrefix += `Present these portfolios to the user in a clean, readable format. Explain why each one matches their criteria. Do NOT generate any tool calls or special syntax — just present the results naturally.`;
     }
 
     // Call OpenRouter
@@ -298,9 +321,25 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    const content =
+    let content =
       data.choices?.[0]?.message?.content ||
       "I could not generate a response. Please try again.";
+
+    // Post-process: strip any tool calls the LLM might still generate
+    content = content
+      .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+      .replace(/<function_call>[\s\S]*?<\/function_call>/g, "")
+      .replace(/<arg_key>[\s\S]*?<\/arg_key>/g, "")
+      .replace(/<arg_value>[\s\S]*?<\/arg_value>/g, "")
+      .replace(/FolioMuse_search\s*\([^)]*\)/g, "")
+      .trim();
+
+    // If content is empty after stripping, provide a fallback
+    if (!content) {
+      content = portfolios.length > 0
+        ? `I found ${portfolios.length} matching portfolios for you! Check them out below.`
+        : "I'd be happy to help you find portfolios. Could you tell me more about what you're looking for?";
+    }
 
     return NextResponse.json({ content, portfolios });
   } catch (error) {

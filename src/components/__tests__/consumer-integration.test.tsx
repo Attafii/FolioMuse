@@ -14,10 +14,10 @@ import { SectionExplorer } from "@/components/section-explorer";
 import { BrowseSkeleton } from "@/components/browse/browse-states";
 
 describe("card-system consumer integration (T9)", () => {
-  it("homepage NewNotable skeleton reserves the 16:9 media ratio", () => {
+  it("homepage NewNotable skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<NewNotable />);
     expect(html).toContain("new-notable");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
   it("homepage role explorer skeleton reserves the 16:9 media ratio", () => {
