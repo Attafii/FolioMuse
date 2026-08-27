@@ -75,7 +75,7 @@ export function buildGalleryWhere(query: GalleryQuery): Prisma.GalleryItemWhereI
     where.OR = [
       { title: { contains: query.q, ...insensitive } },
       { creatorRole: { contains: query.q, ...insensitive } },
-      { attribution: { is: { creatorName: { contains: query.q, ...insensitive } } } },
+      { attribution: { creatorName: { contains: query.q, ...insensitive } } },
       { styleTags: { hasSome: [query.q] } },
       { stackTags: { hasSome: [query.q] } },
     ];
@@ -106,7 +106,7 @@ export function buildGalleryWhere(query: GalleryQuery): Prisma.GalleryItemWhereI
       : where.AND
         ? [where.AND]
         : [];
-    andConditions.push({ attribution: { is: { sourceUrl: { in: query.source } } } });
+    andConditions.push({ attribution: { sourceUrl: { in: query.source } } });
     where.AND = andConditions;
   }
 
