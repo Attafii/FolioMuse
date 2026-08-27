@@ -1,68 +1,73 @@
 import type { Metadata } from "next";
 
+import { BentoFeatures } from "@/components/bento-features";
+import { EditorialCollections } from "@/components/editorial-collections";
+import { Footer } from "@/components/footer";
+import { HeroSection } from "@/components/hero-section";
+import { HowItWorks } from "@/components/how-it-works";
 import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
 import { NewsletterForm } from "@/components/newsletter-form";
-import { EditorialCollections } from "@/components/editorial-collections";
-import { Footer } from "@/components/footer";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
-import { SectionExplorer } from "@/components/section-explorer";
-import { SubmissionCriteria } from "@/components/submission-criteria";
 import { SectionHeader } from "@/components/section-header";
 
 export const metadata: Metadata = {
-    title: "FolioMuse - Portfolio inspiration, without the cloning",
+  title: "FolioMuse - Portfolio inspiration, without the cloning",
   description:
     "A gallery-first entry point: real portfolios, sharpened by AI feedback, assembled with an agent.",
 };
 
 /**
- * FolioMuse homepage (Section 02 Â· Experience design, plan T7).
- * Gallery-first entry point.
+ * FolioMuse homepage — redesigned with modern sections.
  *
- * PAGE-LEVEL STRUCTURE (this file fixes the skeleton â€” section components
- * land in T8-T15):
- *   - Skip link â†’ #main-content
- *   - Single <h1> in the masthead; every other section uses <h2> via
- *     SectionHeader
- *   - Each <section> carries data-testid + aria-labelledby wired to its
- *     heading id
- *   - Empty-state copy per section (real tokens, no fake data)
+ * PAGE-LEVEL STRUCTURE:
+ *   - HeroSection: animated headline + CTAs + stats bar
+ *   - SearchHero: direct search with autocomplete
+ *   - NewNotable: top 6 quality-ranked portfolios
+ *   - BentoFeatures: bento grid showing what FolioMuse offers
+ *   - RoleExplorer: filter chips by profession
+ *   - HowItWorks: 4-step process explanation
+ *   - EditorialCollections: hand-picked portfolio sets
+ *   - McpExample: agent conversation demo
+ *   - NewsletterForm: email capture
+ *   - Footer: enhanced with more links
  *
- * Server component â€” no client hooks here (interactivity lands with the
- * section components in later tasks).
+ * Server component — no client hooks here (interactivity lands with the
+ * section components).
  */
 export default function HomePage() {
   return (
-    <>      
-
+    <>
       <main
         id="main-content"
         className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-24 pt-12 sm:px-6 lg:px-8"
       >
-        {/* â”€â”€ 1. Masthead / hero (T8: direct search hero) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 1. Hero (animated headline + CTAs + stats) ─────────────────── */}
+        <HeroSection />
+
+        {/* ── 2. Search (direct search with autocomplete) ────────────────── */}
         <SearchHero />
 
-        {/* â”€â”€ 2. New & notable (T9: GalleryCard grid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 3. New & notable (top 6 quality-ranked portfolios) ─────────── */}
         <NewNotable />
 
-        {/* â”€â”€ 3. Role explorer (T10) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 4. Bento features (what FolioMuse offers) ──────────────────── */}
+        <BentoFeatures />
+
+        {/* ── 5. Role explorer (filter by profession) ────────────────────── */}
         <RoleExplorer />
 
-        {/* â”€â”€ 4. Section explorer (T11) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <SectionExplorer />
+        {/* ── 6. How it works (4-step process) ───────────────────────────── */}
+        <HowItWorks />
 
-        {/* â”€â”€ 5. Editorial collections (T12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 7. Editorial collections (hand-picked sets) ────────────────── */}
         <EditorialCollections />
 
-        {/* â”€â”€ 6. MCP example (T13) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 8. MCP example (agent conversation demo) ───────────────────── */}
         <McpExample />
 
-        {/* â”€â”€ 7. Submission criteria (T14) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <SubmissionCriteria />
-
-        {/* â”€â”€ 8. Newsletter (T15) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── 9. Newsletter ──────────────────────────────────────────────── */}
         <section
           aria-labelledby="newsletter-heading"
           data-testid="newsletter"
@@ -77,7 +82,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* â”€â”€ 9. Footer (T16) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 10. Footer ──────────────────────────────────────────────────── */}
       <Footer />
     </>
   );
