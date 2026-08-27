@@ -20,16 +20,16 @@ describe("card-system consumer integration (T9)", () => {
     expect(html).toContain("aspect-[16/10]");
   });
 
-  it("homepage role explorer skeleton reserves the 16:9 media ratio", () => {
+  it("homepage role explorer skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<RoleExplorer />);
     expect(html).toContain("role-explorer");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
-  it("homepage section explorer skeleton reserves the 16:9 media ratio", () => {
+  it("homepage section explorer skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<SectionExplorer />);
     expect(html).toContain("section-explorer");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
   it("browse skeleton reserves the 16:9 media ratio", () => {
