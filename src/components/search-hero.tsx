@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Clock, TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,37 @@ import type { GalleryItemSummary } from "@/domain/curation/types";
  * - Loading shows real skeleton cards; error shows a retry action.
  * - No autocomplete library, no debounce lib, no ranking (zero deps).
  * - Telemetry (plan T17): on submit/Enter each surfaced result gets an
- *   IMPRESSION (payload carries the query â€” a pattern signal); opening a
+ *   IMPRESSION (payload carries the query — a pattern signal); opening a
  *   result (Enter on highlighted / click) fires OPEN. Privacy: hashed
-  *   subject key, no page-view events (ADR-0004 non-metrics).
-  */
+ *   subject key, no page-view events (ADR-0004 non-metrics).
+ */
+
+const RECENT_KEY = "foliomuse-recent-searches";
+const MAX_RECENT = 5;
+
+function getRecentSearches(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function addRecentSearch(query: string) {
+  const recent = getRecentSearches().filter((q) => q !== query);
+  recent.unshift(query);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+}
+
+const POPULAR_SEARCHES = [
+  "Frontend Developer",
+  "Designer",
+  "Full Stack",
+  "AI/ML",
+  "minimal",
+  "dark mode",
+];
 
 function ResultCard({
   item,
@@ -129,6 +156,7 @@ export function SearchHero() {
   function reportSubmit() {
     const q = query.trim();
     if (!q) return;
+    addRecentSearch(q);
     for (const result of results) {
       impression(result.id, { source: "search", query: q });
     }
