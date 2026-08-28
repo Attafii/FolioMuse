@@ -121,15 +121,17 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
           <div
             data-testid={CARD_TEST_IDS.mediaFallback}
             aria-hidden="true"
-            className="relative flex h-full w-full items-center justify-center overflow-hidden"
+            className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-muted/50 to-muted"
             style={roleChipStyle(item.creatorRole)}
           >
-            <span className="font-display text-6xl font-bold tracking-tighter opacity-30">
-              {item.attribution.creatorName.charAt(0).toUpperCase()}
-            </span>
-            <span className="absolute bottom-3 left-4 font-mono text-[10px] uppercase tracking-[0.18em] opacity-60">
-              Screenshot unavailable
-            </span>
+            <div className="flex flex-col items-center gap-2">
+              <span className="font-display text-6xl font-bold tracking-tighter opacity-30">
+                {item.attribution.creatorName.charAt(0).toUpperCase()}
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] opacity-60">
+                {item.creatorRole}
+              </span>
+            </div>
           </div>
         )}
 

@@ -33,7 +33,7 @@ const AHMED_ATTAFI_ID = "cmt8us4xv00dgigktqsz3viqh";
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-hidden>
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-xl border border-border bg-card">
           {/* Media box reserves the stable 16:10 ratio (no layout shift). */}
@@ -118,7 +118,7 @@ export function NewNotable() {
       ) : null}
 
       {!loading && !error && cards.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((item) => (
             <GalleryCard key={item.id} item={item} />
           ))}
