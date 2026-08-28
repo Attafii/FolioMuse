@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { loadPortfolioDetail } from "@/lib/load-portfolio-detail";
 import { PortfolioDetailView } from "@/components/portfolio-detail/portfolio-detail-view";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 /**
  * /gallery/[id] - attribution-safe portfolio reference page (ADR-0007).
@@ -41,5 +42,19 @@ export default async function PortfolioDetailPage({ params }: Props) {
   if (!detail) {
     notFound();
   }
-  return <PortfolioDetailView detail={detail} />;
+
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: "Browse", href: "/browse" },
+    { label: detail.title },
+  ];
+
+  return (
+    <>
+      <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
+      <PortfolioDetailView detail={detail} />
+    </>
+  );
 }

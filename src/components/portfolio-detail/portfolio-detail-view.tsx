@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClaimRemovalControls } from "@/components/portfolio-detail/claim-removal-controls";
 import { DetailOpenTelemetry } from "@/components/portfolio-detail/detail-open-telemetry";
 import { CardBookmark } from "@/components/card-bookmark";
+import { ShareButtons } from "@/components/portfolio-detail/share-buttons";
 
 const QUALITY_LABELS: Record<string, string> = {
   L0: "L0 Â· Unusable",
@@ -61,8 +62,9 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
             <span className="mx-2 text-border">|</span>
             <span data-testid="detail-role">{detail.creatorRole}</span>
           </p>
-          {/* Like (local, SSR-safe store) â€” same control as gallery cards. */}
+          {/* Like (local, SSR-safe store) — same control as gallery cards. */}
           <CardBookmark itemId={detail.id} />
+          <ShareButtons title={detail.title} url={`https://foliomuse.com/gallery/${detail.id}`} />
         </div>
       </header>
 

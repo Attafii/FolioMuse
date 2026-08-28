@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { SiteBackdrop } from "@/components/site-backdrop";
 import { Foliobot } from "@/components/foliobot";
 import { Providers } from "@/components/providers";
+import { BackToTop } from "@/components/back-to-top";
 
 import "./globals.css";
 
@@ -156,6 +157,7 @@ export default function RootLayout({
             />
             {children}
             <Foliobot />
+            <BackToTop />
           </ThemeProvider>
         </Providers>
       </body>
