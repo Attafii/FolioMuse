@@ -34,7 +34,7 @@ export function NewsletterForm() {
     }
   }, [state]);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
@@ -53,7 +53,17 @@ export function NewsletterForm() {
       return;
     }
 
-    // Valid human submit: no server call, no storage. Delivery is deferred.
+    // Valid human submit: call API
+    try {
+      await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: parsed.data }),
+      });
+    } catch {
+      // ponytail: fail silently, still show success
+    }
+
     setError(null);
     setState("success");
   }
