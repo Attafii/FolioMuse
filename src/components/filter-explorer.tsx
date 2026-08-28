@@ -80,6 +80,14 @@ export function FilterExplorer({
         : { style: [active], pageSize: 9 };
   const { items, loading, error, refetch } = useGalleryQuery(queryParams);
 
+  // Pin Ahmed Attafi's portfolio first
+  const AHMED_ATTAFI_ID = "cmt8us4xv00dgigktqsz3viqh";
+  const ahmedCard = items.find((item) => item.id === AHMED_ATTAFI_ID);
+  const otherCards = items.filter((item) => item.id !== AHMED_ATTAFI_ID);
+  const sortedItems = ahmedCard
+    ? [ahmedCard, ...otherCards]
+    : items;
+
   // section_visible â†’ IMPRESSION per item on first render (fire-and-forget).
   useEffect(() => {
     if (reported.current) return;
@@ -178,12 +186,12 @@ export function FilterExplorer({
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <GalleryCard key={item.id} item={item} />
             ))}
           </div>
 
-          {items.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <div className="rounded-lg border border-border bg-card p-10 text-center">
               <p className="font-display text-lg font-medium text-card-foreground">
                 No portfolios match this filter.
