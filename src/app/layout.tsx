@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/lib/theme";
 import { SiteBackdrop } from "@/components/site-backdrop";
 import { Foliobot } from "@/components/foliobot";
+import { Providers } from "@/components/providers";
 
 import "./globals.css";
 
@@ -139,22 +140,24 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          <SiteBackdrop />
-          {/* Spacer so the fixed pill never overlaps content on desktop. */}
-          <div aria-hidden className="h-16 sm:h-14" />
-          {/* Nav items (with lucide icon components) live inside the client
-              module — functions cannot cross the server->client boundary. */}
-          <NavBar
-            rightSlot={
-              <span className="inline-flex">
-                <ThemeToggle />
-              </span>
-            }
-          />
-          {children}
-          <Foliobot />
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider>
+            <SiteBackdrop />
+            {/* Spacer so the fixed pill never overlaps content on desktop. */}
+            <div aria-hidden className="h-16 sm:h-14" />
+            {/* Nav items (with lucide icon components) live inside the client
+                module — functions cannot cross the server->client boundary. */}
+            <NavBar
+              rightSlot={
+                <span className="inline-flex">
+                  <ThemeToggle />
+                </span>
+              }
+            />
+            {children}
+            <Foliobot />
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
