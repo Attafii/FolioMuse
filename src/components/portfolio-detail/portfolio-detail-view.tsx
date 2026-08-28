@@ -95,7 +95,9 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
               <img
                 data-testid="desktop-capture"
                 src={heroUrl}
-                alt={`${detail.title} by ${detail.attribution.creatorName} - desktop capture`}
+                alt={`${detail.title} by ${detail.attribution.creatorName} — desktop capture`}
+                width={1280}
+                height={800}
                 loading="eager"
                 decoding="async"
                 referrerPolicy="no-referrer"
@@ -124,6 +126,8 @@ export function PortfolioDetailView({ detail }: { detail: PortfolioDetail }) {
                 data-testid="mobile-capture"
                 src={detail.mobileMediaUrl}
                 alt=""
+                width={480}
+                height={750}
                 loading="lazy"
                 decoding="async"
                 referrerPolicy="no-referrer"

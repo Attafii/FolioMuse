@@ -108,7 +108,9 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
           <img
             data-testid={CARD_TEST_IDS.media}
             src={item.mediaUrl as string}
-            alt={`${item.title} by ${item.attribution.creatorName}`}
+            alt={`${item.title} — portfolio by ${item.attribution.creatorName}`}
+            width={640}
+            height={400}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
