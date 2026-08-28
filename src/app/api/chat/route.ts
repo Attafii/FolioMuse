@@ -9,6 +9,7 @@ import {
 import { ProvenanceRepositoryPrisma } from "@/persistence/provenance-repository-prisma";
 import type { ProvenanceRebuildQueue } from "@/domain/provenance/ports";
 import type { GalleryItemSummary } from "@/domain/curation/types";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * Chat API route for Foliobot with proper RAG.
@@ -335,6 +336,21 @@ interface PortfolioMatch {
 
 export async function POST(request: Request) {
   try {
+    // Rate limit check
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`chat:${ip}`, RATE_LIMITS.chat);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { content: "Rate limit exceeded. Please try again later.", portfolios: [] },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(

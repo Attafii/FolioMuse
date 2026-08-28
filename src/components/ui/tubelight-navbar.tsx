@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, Compass, Heart, Layers, LucideIcon, Sparkles } from "lucide-react"
+import { BookOpen, Compass, FolderOpen, Heart, Layers, LucideIcon, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -32,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: "Home", url: "/", icon: Sparkles },
   { name: "Browse", url: "/browse", icon: Compass },
   { name: "Sections", url: "/sections", icon: Layers },
+  { name: "Collections", url: "/collections", icon: FolderOpen },
   { name: "Docs", url: "/docs", icon: BookOpen },
   { name: "Liked", url: "/liked", icon: Heart },
 ];

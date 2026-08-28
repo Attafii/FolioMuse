@@ -29,10 +29,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // let the page's notFound() produce the real 404.
     return { robots: { index: false, follow: false } };
   }
+
+  const ogParams = new URLSearchParams({
+    title: detail.title,
+    creator: detail.attribution.creatorName,
+    role: detail.creatorRole,
+    quality: detail.qualityLevel,
+  });
+
   return {
     title: detail.title,
     description: `Portfolio reference by ${detail.attribution.creatorName} - ${detail.creatorRole}.`,
     robots: { index: true, follow: true },
+    openGraph: {
+      title: detail.title,
+      description: `Portfolio by ${detail.attribution.creatorName} — ${detail.creatorRole}`,
+      images: [
+        {
+          url: `/api/og?${ogParams.toString()}`,
+          width: 1200,
+          height: 630,
+          alt: detail.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: detail.title,
+      description: `Portfolio by ${detail.attribution.creatorName} — ${detail.creatorRole}`,
+      images: [`/api/og?${ogParams.toString()}`],
+    },
   };
 }
 

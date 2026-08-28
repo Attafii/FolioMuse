@@ -1,18 +1,32 @@
 // POST /api/newsletter — Subscribe to newsletter.
-// ponytail: in-memory store, upgrade to Resend/Mailchimp when needed.
+// Uses Prisma for persistent storage.
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 const EmailSchema = z.object({
   email: z.string().email(),
 });
 
-// ponytail: global store, replace with DB or email provider
-const subscribers: Set<string> = new Set();
-
 export async function POST(request: Request): Promise<Response> {
   try {
+    // Rate limit check
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`newsletter:${ip}`, RATE_LIMITS.newsletter);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "rate_limit_exceeded" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+
     const body = await request.json();
     const parsed = EmailSchema.safeParse(body);
 
@@ -23,7 +37,31 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    subscribers.add(parsed.data.email.toLowerCase());
+    const email = parsed.data.email.toLowerCase();
+
+    // Check if already subscribed
+    const existing = await prisma.newsletter.findUnique({
+      where: { email },
+    });
+
+    if (existing) {
+      if (existing.unsubscribedAt) {
+        // Re-subscribe
+        await prisma.newsletter.update({
+          where: { email },
+          data: { unsubscribedAt: null },
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        message: "Already subscribed!",
+      });
+    }
+
+    // Create new subscription
+    await prisma.newsletter.create({
+      data: { email },
+    });
 
     return NextResponse.json({
       success: true,
@@ -38,7 +76,12 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 export async function GET(): Promise<Response> {
-  return NextResponse.json({
-    count: subscribers.size,
-  });
+  try {
+    const count = await prisma.newsletter.count({
+      where: { unsubscribedAt: null },
+    });
+    return NextResponse.json({ count });
+  } catch {
+    return NextResponse.json({ count: 0 });
+  }
 }

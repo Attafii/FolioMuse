@@ -2,6 +2,7 @@
 // ponytail: minimal implementation, extend as needed.
 
 import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * MCP Protocol handler — supports tools/list and tools/call.
@@ -140,6 +141,21 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
 export async function POST(request: Request): Promise<Response> {
   try {
+    // Rate limit check
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`mcp:${ip}`, RATE_LIMITS.mcp);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: { code: -32000, message: "Rate limit exceeded" } },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+
     const body = await request.json();
     const { method, params } = body;
 

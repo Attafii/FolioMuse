@@ -187,7 +187,7 @@ export function Foliobot() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4" aria-live="polite" aria-atomic="false">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
