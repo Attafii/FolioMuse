@@ -11,18 +11,18 @@ export function BrowseSkeleton() {
     <div
       data-testid="browse-skeleton"
       aria-hidden
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid grid-cols-1 gap-8 lg:grid-cols-2"
     >
-      {Array.from({ length: 9 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-xl border border-border bg-card"
+          className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg"
         >
-          {/* Media box reserves the stable 16:9 ratio (no layout shift). */}
-          <div className="aspect-[16/9] w-full animate-pulse bg-muted/60" />
-          <div className="flex flex-col gap-2 p-(--card-spacing)">
-            <div className="h-4 w-3/4 animate-pulse rounded bg-muted/60" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+          {/* Media box reserves the stable 16:10 ratio (no layout shift). */}
+          <div className="aspect-[16/10] w-full animate-pulse bg-muted/60" />
+          <div className="flex flex-col gap-2 p-5">
+            <div className="h-5 w-3/4 animate-pulse rounded bg-muted/60" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-muted/60" />
           </div>
         </div>
       ))}

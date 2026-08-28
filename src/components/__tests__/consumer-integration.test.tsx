@@ -14,28 +14,28 @@ import { SectionExplorer } from "@/components/section-explorer";
 import { BrowseSkeleton } from "@/components/browse/browse-states";
 
 describe("card-system consumer integration (T9)", () => {
-  it("homepage NewNotable skeleton reserves the 16:9 media ratio", () => {
+  it("homepage NewNotable skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<NewNotable />);
     expect(html).toContain("new-notable");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
-  it("homepage role explorer skeleton reserves the 16:9 media ratio", () => {
+  it("homepage role explorer skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<RoleExplorer />);
     expect(html).toContain("role-explorer");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
-  it("homepage section explorer skeleton reserves the 16:9 media ratio", () => {
+  it("homepage section explorer skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<SectionExplorer />);
     expect(html).toContain("section-explorer");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
-  it("browse skeleton reserves the 16:9 media ratio", () => {
+  it("browse skeleton reserves the 16:10 media ratio", () => {
     const html = renderToStaticMarkup(<BrowseSkeleton />);
     expect(html).toContain("browse-skeleton");
-    expect(html).toContain("aspect-[16/9]");
+    expect(html).toContain("aspect-[16/10]");
   });
 
   it("no consumer embeds Prisma or its own gallery fetch marker", () => {

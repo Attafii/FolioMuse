@@ -109,10 +109,10 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
       ref={cardRef}
       data-testid={CARD_TEST_IDS.card}
       onMouseMove={handleMouseMove}
-      className="spotlight-card group/card relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card"
+      className="spotlight-card group/card relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
     >
       {/* Full-bleed media region */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden">
+      <div className="relative aspect-[16/10] w-full overflow-hidden">
         {hasMedia ? (
           <>
             {/* Loading skeleton */}

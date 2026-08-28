@@ -10,6 +10,7 @@ import { HowItWorks } from "@/components/how-it-works";
 import { McpExample } from "@/components/mcp-example";
 import { NewNotable } from "@/components/new-notable";
 import { NewsletterForm } from "@/components/newsletter-form";
+import { PortfolioOfTheDay } from "@/components/portfolio-of-the-day";
 import { RoleExplorer } from "@/components/role-explorer";
 import { SearchHero } from "@/components/search-hero";
 import { SectionHeader } from "@/components/section-header";
@@ -59,6 +60,9 @@ export default function HomePage() {
 
         {/* ── 2. Search (centered search with autocomplete) ──────────────── */}
         <SearchHero />
+
+        {/* ── 2.5. Portfolio of the Day (featured spotlight) ─────────────── */}
+        <PortfolioOfTheDay />
 
         {/* ── 3. New & notable (top 6 quality-ranked portfolios) ─────────── */}
         <NewNotable />
