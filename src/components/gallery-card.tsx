@@ -82,6 +82,7 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
   const freshness = freshnessLabel(item.reviewedAt);
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoading, setImgLoading] = useState(true);
   const hasMedia = item.mediaUrl !== null && !imgFailed;
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -94,6 +95,15 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
     el.style.setProperty("--spotlight-y", `${y}%`);
   }, []);
 
+  const handleImageLoad = useCallback(() => {
+    setImgLoading(false);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImgFailed(true);
+    setImgLoading(false);
+  }, []);
+
   return (
     <div
       ref={cardRef}
@@ -102,21 +112,30 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
       className="spotlight-card group/card relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card"
     >
       {/* Full-bleed media region */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
+      <div className="relative aspect-[16/9] w-full overflow-hidden">
         {hasMedia ? (
-          // eslint-disable-next-line @next/next/no-img-element -- documented tradeoff
-          <img
-            data-testid={CARD_TEST_IDS.media}
-            src={item.mediaUrl as string}
-            alt={`${item.title} — portfolio by ${item.attribution.creatorName}`}
-            width={640}
-            height={400}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onError={() => setImgFailed(true)}
-            className="h-full w-full object-cover transition-[transform,filter] duration-500 ease-[var(--ease-standard)] group-hover/card:scale-105 group-hover/card:blur-md"
-          />
+          <>
+            {/* Loading skeleton */}
+            {imgLoading && (
+              <div className="absolute inset-0 shimmer" />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element -- documented tradeoff */}
+            <img
+              data-testid={CARD_TEST_IDS.media}
+              src={item.mediaUrl as string}
+              alt={`${item.title} — portfolio by ${item.attribution.creatorName}`}
+              width={640}
+              height={400}
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              className={`h-full w-full object-cover transition-[transform,filter] duration-500 ease-[var(--ease-standard)] group-hover/card:scale-105 group-hover/card:blur-md ${
+                imgLoading ? "opacity-0" : "opacity-100"
+              }`}
+            />
+          </>
         ) : (
           <div
             data-testid={CARD_TEST_IDS.mediaFallback}
@@ -216,15 +235,15 @@ export function GalleryCard({ item }: { item: GalleryItemSummary }) {
 
       {/* Bottom info bar - always visible */}
       <div className="flex items-center justify-between gap-2 border-t border-border/40 bg-card/95 px-4 py-2.5 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span className="truncate font-display text-sm font-semibold tracking-tight text-card-foreground">
             {item.title}
           </span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
+          <span className="hidden truncate font-mono text-[11px] text-muted-foreground sm:inline">
             by {item.attribution.creatorName}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {isSample ? (
             <Badge
               variant="outline"

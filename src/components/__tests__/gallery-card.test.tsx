@@ -31,9 +31,9 @@ describe("GalleryCard media region", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("uses aspect-[16/10] class for the media region", () => {
+  it("uses aspect-[16/9] class for the media region", () => {
     const html = renderToStaticMarkup(<GalleryCard item={CARD_FIXTURES.mediaPresent} />);
-    expect(html).toContain("aspect-[16/10]");
+    expect(html).toContain("aspect-[16/9]");
   });
 });
 

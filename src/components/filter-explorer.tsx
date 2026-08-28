@@ -41,10 +41,10 @@ export interface FilterExplorerProps {
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-hidden>
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+      {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="aspect-[16/10] w-full shimmer" />
+          <div className="aspect-[16/9] w-full shimmer" />
           <div className="flex flex-col gap-2 p-(--card-spacing)">
             <div className="h-4 w-3/4 rounded shimmer" />
             <div className="h-3 w-1/2 rounded shimmer" />
@@ -185,7 +185,7 @@ export function FilterExplorer({
             ) : null}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {sortedItems.map((item) => (
               <GalleryCard key={item.id} item={item} />
             ))}
