@@ -2,13 +2,19 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
+/**
+ * Database-backed auth with session tokens.
+ *
+ * - Signup/login call API routes that create DB sessions
+ * - Token stored in localStorage, sent as Bearer header
+ * - /api/auth/me validates token on mount
+ * - Logout deletes session from DB
+ */
+
 interface User {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
-  role: "BUILDER" | "EXPLORER" | "AGENT_OPERATOR";
-  createdAt: string;
 }
 
 interface AuthContextType {
@@ -17,132 +23,115 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const STORAGE_KEY = "foliomuse-auth";
+const TOKEN_KEY = "foliomuse-token";
 
-function getUsers(): Record<string, User & { password: string }> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(`${STORAGE_KEY}-users`) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveUsers(users: Record<string, User & { password: string }>) {
-  localStorage.setItem(`${STORAGE_KEY}-users`, JSON.stringify(users));
-}
-
-function getSession(): User | null {
+function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  try {
-    const data = localStorage.getItem(`${STORAGE_KEY}-session`);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
+  return localStorage.getItem(TOKEN_KEY);
 }
 
-function saveSession(user: User | null) {
-  if (user) {
-    localStorage.setItem(`${STORAGE_KEY}-session`, JSON.stringify(user));
-  } else {
-    localStorage.removeItem(`${STORAGE_KEY}-session`);
-  }
+function setToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
-// ponytail: simple hash for demo — use bcrypt in production
-function hashPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(36);
+function removeToken() {
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check session on mount
   useEffect(() => {
-    setUser(getSession());
-    setLoading(false);
+    const token = getToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setUser(data.user);
+        } else {
+          removeToken();
+        }
+      })
+      .catch(() => removeToken())
+      .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const users = getUsers();
-    const existing = users[email.toLowerCase()];
-    
-    if (!existing || existing.password !== hashPassword(password)) {
-      return { success: false, error: "Invalid email or password" };
-    }
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const { password: _, ...userData } = existing;
-    setUser(userData);
-    saveSession(userData);
-    return { success: true };
+      const data = await res.json();
+      if (data.success) {
+        setToken(data.token);
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, error: data.error };
+    } catch {
+      return { success: false, error: "Something went wrong" };
+    }
   }, []);
 
   const signup = useCallback(async (name: string, email: string, password: string) => {
-    const users = getUsers();
-    const key = email.toLowerCase();
-    
-    if (users[key]) {
-      return { success: false, error: "Email already registered" };
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setToken(data.token);
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, error: data.error };
+    } catch {
+      return { success: false, error: "Something went wrong" };
     }
-
-    const newUser: User & { password: string } = {
-      id: crypto.randomUUID(),
-      name,
-      email: key,
-      role: "BUILDER",
-      createdAt: new Date().toISOString(),
-      password: hashPassword(password),
-    };
-
-    users[key] = newUser;
-    saveUsers(users);
-
-    const { password: _, ...userData } = newUser;
-    setUser(userData);
-    saveSession(userData);
-    return { success: true };
   }, []);
 
   const logout = useCallback(() => {
+    const token = getToken();
+    if (token) {
+      fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    removeToken();
     setUser(null);
-    saveSession(null);
   }, []);
 
-  const updateProfile = useCallback((updates: Partial<User>) => {
-    if (!user) return;
-    const updated = { ...user, ...updates };
-    setUser(updated);
-    saveSession(updated);
-    
-    // Also update in users store
-    const users = getUsers();
-    if (users[user.email]) {
-      users[user.email] = { ...users[user.email], ...updates };
-      saveUsers(users);
-    }
-  }, [user]);
-
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return context;
 }
