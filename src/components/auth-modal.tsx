@@ -71,6 +71,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -88,8 +89,10 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
           <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
             {mode === "signup" && (
               <div className="relative">
+                <label htmlFor="auth-name" className="sr-only">Full name</label>
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  id="auth-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -101,8 +104,10 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
             )}
 
             <div className="relative">
+              <label htmlFor="auth-email" className="sr-only">Email</label>
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
+                id="auth-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -113,8 +118,10 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
             </div>
 
             <div className="relative">
+              <label htmlFor="auth-password" className="sr-only">Password</label>
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
+                id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -126,7 +133,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
             </div>
 
             {error && (
-              <p className="text-sm text-destructive">{error}</p>
+              <p role="alert" className="text-sm text-destructive">{error}</p>
             )}
 
             <button
