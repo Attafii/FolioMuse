@@ -2,44 +2,32 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, LogOut, Settings, Heart } from "lucide-react";
+import { User, LogOut, Heart } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { AuthModal } from "./auth-modal";
 
 export function UserMenu() {
   const { user, logout, loading } = useAuth();
   const [open, setOpen] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
   if (loading) return null;
 
   if (!user) {
     return (
-      <>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => { setAuthMode("login"); setShowAuth(true); }}
-            className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            onClick={() => { setAuthMode("signup"); setShowAuth(true); }}
-            className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Sign up
-          </button>
-        </div>
-        <AuthModal
-          isOpen={showAuth}
-          onClose={() => setShowAuth(false)}
-          defaultMode={authMode}
-        />
-      </>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/login"
+          className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Sign in
+        </Link>
+        <Link
+          href="/signup"
+          className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Sign up
+        </Link>
+      </div>
     );
   }
 
