@@ -40,7 +40,7 @@ export function BackToTop() {
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
           aria-label="Back to top"
-          className="fixed bottom-20 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-lg transition-colors hover:bg-muted sm:bottom-8"
+          className="fixed bottom-6 right-24 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-lg transition-colors hover:bg-muted sm:right-28"
         >
           <ArrowUp className="h-4 w-4" />
         </motion.button>
